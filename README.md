@@ -18,7 +18,7 @@ go get github.com/go-sdk/core
 |---------|-----------------------------------|
 | `errx`  | 创建、包装和判断错误              |
 | `logx`  | 配置并使用进程级全局日志          |
-| `osx`   | 读取调试状态、环境变量和构建版本  |
+| `osx`   | 读取系统、路径、环境变量和构建信息 |
 | `restx` | 创建带统一默认配置的 resty 客户端 |
 | `seq`   | 生成 Snowflake ID 和 UUID v7      |
 | `testx` | 提供常用测试断言和输出辅助        |
@@ -57,6 +57,19 @@ debug := osx.GetEnv(false, "APP_DEBUG", "DEBUG")
 ```
 
 `GetEnv` 按名称顺序读取第一个已设置的环境变量。变量即使为空或无法转换也会立即采用，不再尝试后续名称；转换失败时返回目标类型的零值。只有全部变量都未设置时才返回默认值。
+
+### 系统与路径信息
+
+```go
+hostname := osx.Hostname()
+workDir := osx.WorkDir()
+exeFull := osx.ExeFull()
+exeDir := osx.ExeDir()
+exeName := osx.ExeName()
+exeExt := osx.ExeExt()
+```
+
+主机名和工作目录在调用时读取；可执行文件完整路径在包初始化时读取一次并缓存。
 
 ### HTTP 客户端
 
