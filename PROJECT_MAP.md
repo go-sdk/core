@@ -8,17 +8,19 @@
 
 ```text
 core/
-├── errx/       错误创建、包装、解包和判断
-├── logx/       进程级全局日志及 zerolog 配置
-├── osx/        调试状态、环境变量和构建版本信息
-├── restx/      预配置的 resty HTTP 客户端
-├── seq/        Snowflake ID 和 UUID v7 生成
-├── testx/      测试断言和输出辅助
-├── AGENTS.md   仓库协作与修改规范
-├── PROJECT_MAP.md 项目结构与调用关系
-├── README.md   使用说明与公共行为
-├── Makefile    版本注入、代码检查和命令帮助
-└── go.mod      Go 模块和依赖定义
+├── .github/workflows/golang.yml     持续集成与 Tag Release
+├── .editorconfig                    编辑器格式规范
+├── errx/                            错误创建、包装、解包和判断
+├── logx/                            进程级全局日志及 zerolog 配置
+├── osx/                             调试状态、环境变量和构建版本信息
+├── restx/                           预配置的 resty HTTP 客户端
+├── seq/                             Snowflake ID 和 UUID v7 生成
+├── testx/                           测试断言和输出辅助
+├── AGENTS.md                        仓库协作与修改规范
+├── PROJECT_MAP.md                   项目结构与调用关系
+├── README.md                        使用说明与公共行为
+├── Makefile                         版本注入、代码检查和命令帮助
+└── go.mod                           Go 模块和依赖定义
 ```
 
 ## 包说明
@@ -71,6 +73,12 @@ testx ──> testify/require、kr/pretty
 ```
 
 各业务包的测试可以依赖 `testx`，生产包不依赖 `testx`。
+
+## 自动化流程
+
+- 推送到 `master` 分支时整理并校验依赖文件，然后运行代码检查和全部测试。
+- 推送 `v*` Tag 时先运行相同检查，全部通过后创建 GitHub Release。
+- Release 使用对应的远端 Tag，并由 GitHub 自动生成标题和发布说明，不额外上传制品。
 
 ## 测试结构
 
