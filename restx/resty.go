@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/net/publicsuffix"
+
+	"github.com/go-sdk/core/osx"
 )
 
 // Request 是 resty.Request 的类型别名。
@@ -16,14 +18,11 @@ type Request = resty.Request
 
 // New 创建带有统一默认配置的 resty 客户端。
 // 客户端支持环境代理、HTTP/2、连接池和 Cookie Jar，请求总超时为五分钟。
+// 调试模式下启用请求调试日志，resty 内部日志统一由 logx 输出。
 func New() *resty.Client {
-	resolver := &net.Resolver{
-		PreferGo: true,
-	}
 	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
-		Resolver:  resolver,
 	}
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
@@ -41,5 +40,5 @@ func New() *resty.Client {
 		Jar:       jar,
 		Timeout:   5 * time.Minute,
 	}
-	return resty.NewWithClient(client).SetLogger(&logger{})
+	return resty.NewWithClient(client).SetDebug(osx.IsDebug()).SetLogger(&logger{})
 }

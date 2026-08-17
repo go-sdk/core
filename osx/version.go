@@ -27,6 +27,8 @@ func (v Version) String() string {
 	return string(bs)
 }
 
+// iVersion 是构建时通过 -ldflags "-X .../osx.iVersion=v1.2.3" 注入的版本号，
+// 未注入时回退到构建信息中的主模块版本。
 var (
 	iVersion string
 

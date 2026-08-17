@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 
+	"github.com/go-sdk/core/osx"
 	"github.com/go-sdk/core/testx"
 )
 
@@ -31,6 +32,11 @@ func TestNewClientConfiguration(t *testing.T) {
 	testx.Equal(t, 90*time.Second, transport.IdleConnTimeout)
 	testx.Equal(t, 10*time.Second, transport.TLSHandshakeTimeout)
 	testx.Equal(t, time.Second, transport.ExpectContinueTimeout)
+}
+
+func TestNewClientDebug(t *testing.T) {
+	client := New()
+	testx.Equal(t, osx.IsDebug(), client.Debug)
 }
 
 func TestRequestAndCookieJar(t *testing.T) {

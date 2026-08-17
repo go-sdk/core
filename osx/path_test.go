@@ -23,3 +23,19 @@ func TestExecutablePath(t *testing.T) {
 	testx.Equal(t, filepath.Ext(full), ExeExt())
 	testx.Equal(t, strings.TrimSuffix(filepath.Base(full), filepath.Ext(full)), ExeName())
 }
+
+func TestWithExeExt(t *testing.T) {
+	base := strings.TrimSuffix(ExeFull(), filepath.Ext(ExeFull()))
+
+	t.Run("缺少前导点时自动补齐", func(t *testing.T) {
+		testx.Equal(t, base+".log", WithExeExt("log"))
+	})
+
+	t.Run("保留已有前导点", func(t *testing.T) {
+		testx.Equal(t, base+".log", WithExeExt(".log"))
+	})
+
+	t.Run("空扩展名返回无扩展名路径", func(t *testing.T) {
+		testx.Equal(t, base, WithExeExt(""))
+	})
+}

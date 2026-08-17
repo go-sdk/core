@@ -67,9 +67,10 @@ exeFull := osx.ExeFull()
 exeDir := osx.ExeDir()
 exeName := osx.ExeName()
 exeExt := osx.ExeExt()
+exeLog := osx.WithExeExt("log")
 ```
 
-主机名和工作目录在调用时读取；可执行文件完整路径在包初始化时读取一次并缓存。
+主机名和工作目录在调用时读取；可执行文件完整路径在包初始化时读取一次并缓存。`WithExeExt` 返回将可执行文件扩展名替换为指定扩展名的完整路径，常用于生成与程序同名的日志等辅助文件，扩展名缺少前导点时自动补齐。
 
 ### HTTP 客户端
 
@@ -78,7 +79,7 @@ client := restx.New()
 response, err := client.R().Get("https://example.com")
 ```
 
-客户端默认支持环境代理、HTTP/2、连接池和 Cookie Jar，请求总超时为五分钟。
+客户端默认支持环境代理、HTTP/2、连接池和 Cookie Jar，请求总超时为五分钟。调试模式下（判定规则见 `osx.IsDebug`）resty 会输出请求与响应调试日志，内部日志统一由 `logx` 输出。
 
 ### 序列生成
 

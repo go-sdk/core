@@ -43,3 +43,12 @@ func ExeName() string {
 func ExeExt() string {
 	return filepath.Ext(exe)
 }
+
+// WithExeExt 返回将可执行文件扩展名替换为 ext 后的完整路径。
+// ext 缺少前导点时自动补齐；ext 为空时返回不含扩展名的路径。
+func WithExeExt(ext string) string {
+	if ext != "" && !strings.HasPrefix(ext, ".") {
+		ext = "." + ext
+	}
+	return strings.TrimSuffix(exe, filepath.Ext(exe)) + ext
+}
