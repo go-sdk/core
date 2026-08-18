@@ -16,6 +16,7 @@ go get github.com/go-sdk/core
 
 | 包      | 用途                               |
 |---------|------------------------------------|
+| `cmdx`  | 创建 cobra 根命令并包装命令入口    |
 | `errx`  | 创建、包装和判断错误               |
 | `logx`  | 配置并使用进程级全局日志           |
 | `osx`   | 读取系统、路径、环境变量和构建信息 |
@@ -24,6 +25,24 @@ go get github.com/go-sdk/core
 | `testx` | 提供常用测试断言和输出辅助         |
 
 ## 使用示例
+
+### 命令行
+
+```go
+root := cmdx.NewRoot("app")
+root.AddCommand(&cmdx.Command{
+	Use: "run",
+	RunE: cmdx.WrapRunE(func(cmd *cmdx.Command, args []string) error {
+		return nil
+	}),
+})
+
+if err := root.Execute(); err != nil {
+	logx.Error().Err(err).Msg("执行失败")
+}
+```
+
+`NewRoot` 隐藏 help 和 completion 子命令，`--version` 输出来自 `osx.GetVersion` 的单行版本描述。cobra 自身的错误输出被丢弃，命令错误由 `Execute` 直接返回，调用方自行处理；`WrapRunE` 将 `errx.Nil` 哨兵错误视为无错误，其余错误原样返回。
 
 ### 错误处理
 

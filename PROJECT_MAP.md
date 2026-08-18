@@ -10,6 +10,7 @@
 core/
 ├── .github/workflows/golang.yml     持续集成与 Tag Release
 ├── .editorconfig                    编辑器格式规范
+├── cmdx/                            cobra 根命令创建和入口包装
 ├── errx/                            错误创建、包装、解包和判断
 ├── logx/                            进程级全局日志及 zerolog 配置
 ├── osx/                             调试状态、环境变量和构建版本信息
@@ -24,6 +25,13 @@ core/
 ```
 
 ## 包说明
+
+### `cmdx`
+
+- 基于 `github.com/spf13/cobra`，`Command` 是 `cobra.Command` 的类型别名。
+- `NewRoot` 创建隐藏 help 和 completion 子命令的根命令，版本描述来自 `osx.GetVersion`。
+- cobra 自身的错误输出被丢弃，命令错误由 `Execute` 返回，调用方自行处理。
+- `WrapRunE` 将 `errx.Nil` 哨兵错误视为无错误，其余错误原样返回。
 
 ### `errx`
 
@@ -68,6 +76,7 @@ core/
 
 ```text
 restx ──> logx ──> osx
+cmdx  ──> cobra、errx、osx
 errx  ──> eris
 seq   ──> sonyflake、google/uuid
 testx ──> testify/require、kr/pretty
@@ -84,6 +93,7 @@ testx ──> testify/require、kr/pretty
 ## 测试结构
 
 - 单元测试与被测代码使用相同包名，覆盖公共行为、既定配置和关键边界。
+- `cmdx` 测试验证根命令默认配置以及 `WrapRunE` 对哨兵错误和真实错误的处理。
 - `logx` 测试验证全局日志包装、两阶段初始化、文件刷新以及标准日志接管。
 - `osx` 测试验证调试模式、环境变量优先级、主机与路径信息、扩展名替换以及构建版本序列化。
 - `restx` 使用本地 `httptest` 服务验证客户端配置、调试模式、请求和 Cookie Jar，不访问外部接口。
