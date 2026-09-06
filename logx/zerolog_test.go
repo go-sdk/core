@@ -19,7 +19,7 @@ import (
 
 type fieldHook struct{}
 
-func (fieldHook) Run(event *zerolog.Event, level zerolog.Level, message string) {
+func (fieldHook) Run(event *zerolog.Event, _ zerolog.Level, _ string) {
 	event.Str("hook", "已执行")
 }
 
