@@ -118,6 +118,30 @@ logx.Info().Str("service", "example").Msg("服务已启动")
 
 重新调用 `Init` 会先刷新并关闭此前创建的文件 Writer。日志资源按进程统一管理，不使用独立 Logger 生命周期。控制台输出经 go-colorable 包装，在 Windows 终端下也能正常显示颜色。
 
+`SetGlobalKV` 维护进程级全局键值，之后所有日志事件都会附带该键值，适合注入 `service`、`version`、`instance`、`environment` 等进程级标识：
+
+```go
+logx.SetGlobalKV("service", "example")
+logx.SetGlobalKV("version", "v1.0.0")
+
+logx.Info().Msg("服务已启动")
+// {"level":"info","service":"example","version":"v1.0.0","message":"服务已启动"}
+
+logx.DeleteGlobalKV("version") // 删除指定键
+logx.ClearGlobalKV()           // 清空全部键
+```
+
+全局键值只在写入时加锁，日志输出通过不可变快照无锁读取，可并发调用；对所有由 `logx.New` 创建的 Logger 生效，不影响调用方自行创建的 zerolog Logger。全局键与事件字段同名时会产生重复 JSON key，调用方应保证全局键不与日志字段冲突。
+
+trace、request、user 等请求级字段会随请求并发变化，不应使用全局键值，应通过上下文 Logger 传递：
+
+```go
+logger := logx.With().Str("trace", "abc123").Logger()
+ctx := logger.WithContext(context.Background())
+
+logx.Ctx(ctx).Info().Msg("处理请求")
+```
+
 包初始化时若设置了 `LOGX_FILE_PATH`，默认日志会同时写入该滚动文件。文件滚动参数通过环境变量配置：
 
 | 环境变量              | 含义             | 默认值 |

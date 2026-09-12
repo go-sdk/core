@@ -70,7 +70,7 @@ func Init(filename string) {
 // 调试模式下最低级别为 trace，并记录调用位置。
 // 本包按进程维护统一的文件 Writer 生命周期，调用 Init 或 Close 会关闭此前创建的文件 Writer。
 func New(filename string) zerolog.Logger {
-	zl := zerolog.New(loggerWriters(filename)).Level(zerolog.InfoLevel)
+	zl := zerolog.New(loggerWriters(filename)).Level(zerolog.InfoLevel).Hook(globalKvHook{})
 	if osx.IsDebug() {
 		zl = zl.Level(zerolog.TraceLevel).With().Caller().Logger()
 	}

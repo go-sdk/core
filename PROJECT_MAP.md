@@ -69,6 +69,8 @@ core/
 - 应用读取配置后可以再次调用 `Init`，将日志同时写入标准输出和滚动文件。
 - 文件滚动参数读取 `LOGX_FILE_SIZE`、`LOGX_FILE_AGE`、`LOGX_FILE_BACKUPS`、`LOGX_FILE_LOCALTIME`、`LOGX_FILE_COMPRESS` 环境变量。
 - 文件日志使用异步 Writer，所有文件 Writer 由进程统一通过 `Init` 和 `Close` 管理。
+- `SetGlobalKV`、`DeleteGlobalKV` 和 `ClearGlobalKV` 维护进程级全局键值，仅用于 service、version 等进程级标识，并通过 Hook 附加到之后所有日志事件；键值对所有 `New` 创建的 Logger 生效。
+- 全局键值只在写入时加锁，日志输出通过不可变快照无锁读取，序列化阶段不持有任何锁；全局键与事件字段同名会产生重复 JSON key，调用方应保证不冲突。
 - `logx/log.go` 来源于 zerolog 上游，不在本仓库中修改。
 
 ### `osx`
@@ -124,7 +126,7 @@ testx ───> testify/require、kr/pretty
 - `codec/json` 测试验证 `string` 与 `[]byte` 两种载体的序列化、反序列化和 `Must` 版本的错误路径。
 - `conv` 测试验证空输入零值语义和常规互转结果。
 - `lifex` 测试验证初始化顺序与失败中断、解构逆序与错误隔离、`Shutdown` 幂等与并发 `Wait`，并通过子进程重入验证信号触发退出和第二次信号强制退出，不访问外部资源。
-- `logx` 测试验证全局日志包装、两阶段初始化、文件刷新以及标准日志接管。
+- `logx` 测试验证全局日志包装、两阶段初始化、文件刷新、标准日志接管以及全局键值的附加、覆盖、删除、清空、同名冲突行为、序列化重入和并发安全。
 - `osx` 测试验证调试模式、环境变量优先级、主机与路径信息、扩展名替换、构建版本序列化以及 Panic/Panicf 的堆栈输出与 panic 透传。
 - `restx` 使用本地 `httptest` 服务验证客户端配置、调试模式、请求和 Cookie Jar，不访问外部接口。
 - `seq` 同时验证格式、默认机器编号、唯一性和进程内并发安全。
