@@ -6,6 +6,8 @@ import (
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/go-sdk/core/conv"
 )
 
 // Version 描述当前程序的版本、版本控制和 Go 构建信息。
@@ -24,7 +26,7 @@ type Version struct {
 // String 以缩进后的 JSON 格式返回版本信息。
 func (v Version) String() string {
 	bs, _ := json.MarshalIndent(v, "", "  ")
-	return string(bs)
+	return conv.BytesToString(bs)
 }
 
 // iVersion 是构建时通过 -ldflags "-X .../osx.iVersion=v1.2.3" 注入的版本号，

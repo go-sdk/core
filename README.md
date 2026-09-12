@@ -1,10 +1,10 @@
 # core
 
-`core` 是个人使用的 Go 基础类库，模块路径为 `github.com/go-sdk/core`。项目用于统一常见基础能力和默认行为，包括错误处理、生命周期、全局日志、环境变量、构建版本、HTTP 客户端、序列生成和测试辅助。
+`core` 是个人使用的 Go 基础类库，模块路径为 `github.com/go-sdk/core`。项目用于统一常见基础能力和默认行为，包括错误处理、生命周期、全局日志、环境变量、构建版本、HTTP 客户端、JSON 编解码、零拷贝类型转换、序列生成和测试辅助。
 
 ## 环境要求
 
-- Go 1.26 或更高版本
+- Go 1.27 或更高版本
 
 ## 安装
 
@@ -14,16 +14,18 @@ go get github.com/go-sdk/core
 
 ## 包概览
 
-| 包      | 用途                                 |
-|---------|--------------------------------------|
-| `cmdx`  | 创建 cobra 根命令并包装命令入口      |
-| `errx`  | 创建、包装和判断错误                 |
-| `lifex` | 管理信号、初始化和解构的进程生命周期 |
-| `logx`  | 配置并使用进程级全局日志             |
-| `osx`   | 读取系统、路径、环境变量和构建信息   |
-| `restx` | 创建带统一默认配置的 resty 客户端    |
-| `seq`   | 生成 Snowflake ID 和 UUID v7         |
-| `testx` | 提供常用测试断言和输出辅助           |
+| 包           | 用途                                 |
+|--------------|--------------------------------------|
+| `cmdx`       | 创建 cobra 根命令并包装命令入口      |
+| `codec/json` | 基于 encoding/json/v2 的 JSON 编解码 |
+| `conv`       | string 与 []byte 零拷贝互转          |
+| `errx`       | 创建、包装和判断错误                 |
+| `lifex`      | 管理信号、初始化和解构的进程生命周期 |
+| `logx`       | 配置并使用进程级全局日志             |
+| `osx`        | 读取系统、路径、环境变量和构建信息   |
+| `restx`      | 创建带统一默认配置的 resty 客户端    |
+| `seq`        | 生成 Snowflake ID 和 UUID v7         |
+| `testx`      | 提供常用测试断言和输出辅助           |
 
 ## 使用示例
 
@@ -44,6 +46,28 @@ if err := root.Execute(); err != nil {
 ```
 
 `NewRoot` 隐藏 help 和 completion 子命令，`--version` 输出来自 `osx.GetVersion` 的单行版本描述。cobra 自身的错误输出被丢弃，命令错误由 `Execute` 直接返回，调用方自行处理；`WrapRunE` 将 `errx.Nil` 哨兵错误视为无错误，其余错误原样返回。
+
+### JSON 编解码
+
+```go
+s, err := json.Marshal[string](data)
+bs, err := json.Marshal[[]byte](data)
+
+var out Data
+err = json.Unmarshal(s, &out)
+value := json.MustUnmarshal[Data](bs)
+```
+
+`Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体，内部经 `conv` 零拷贝互转；`Must` 前缀版本在出错时直接 panic。
+
+### 零拷贝转换
+
+```go
+bs := conv.StringToBytes("starudream")
+s := conv.BytesToString(bs)
+```
+
+`StringToBytes` 和 `BytesToString` 基于 unsafe 实现零拷贝互转，空输入返回对应零值（nil 或空串）；由 string 转出的 []byte 底层只读，不可修改。
 
 ### 错误处理
 

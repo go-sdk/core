@@ -2,7 +2,7 @@
 
 ## 项目定位
 
-`github.com/go-sdk/core` 是个人 Go 基础类库，集中提供错误处理、生命周期、日志、环境与版本信息、HTTP 客户端、序列生成和测试辅助能力。
+`github.com/go-sdk/core` 是个人 Go 基础类库，集中提供错误处理、生命周期、日志、环境与版本信息、HTTP 客户端、JSON 编解码、零拷贝类型转换、序列生成和测试辅助能力。
 
 ## 目录结构
 
@@ -11,6 +11,8 @@ core/
 ├── .github/workflows/golang.yml     持续集成与 Tag Release
 ├── .editorconfig                    编辑器格式规范
 ├── cmdx/                            cobra 根命令创建和入口包装
+├── codec/json/                     基于 encoding/json/v2 的泛型 JSON 编解码
+├── conv/                           string 与 []byte 零拷贝互转
 ├── errx/                            错误创建、包装、解包和判断
 ├── lifex/                           全局信号、初始化和解构管理
 ├── logx/                            进程级全局日志及 zerolog 配置
@@ -34,6 +36,17 @@ core/
 - `NewRoot` 创建隐藏 help 和 completion 子命令的根命令，版本描述来自 `osx.GetVersion`。
 - cobra 自身的错误输出被丢弃，命令错误由 `Execute` 返回，调用方自行处理。
 - `WrapRunE` 将 `errx.Nil` 哨兵错误视为无错误，其余错误原样返回。
+
+### `codec/json`
+
+- 基于 `encoding/json/v2`，`Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体。
+- 载体转换经 `conv` 零拷贝完成，`[]byte` 路径直接复用原切片。
+- `Must` 前缀版本在出错时经 `osx.Panic` 直接 panic。
+
+### `conv`
+
+- 提供 `StringToBytes` 和 `BytesToString`，基于 unsafe 实现 string 与 []byte 的零拷贝互转。
+- 空输入返回对应零值（nil 或空串）；由 string 转出的 []byte 底层只读，不可修改。
 
 ### `errx`
 
@@ -87,12 +100,13 @@ core/
 ## 主要依赖关系
 
 ```text
-restx ──> logx ──> osx
-cmdx  ──> cobra、errx、osx
-lifex ──> logx
-errx  ──> eris
-seq   ──> sonyflake、google/uuid、osx
-testx ──> testify/require、kr/pretty
+restx ───> logx ───> osx
+codec/json -> conv、osx
+cmdx  ───> cobra、errx、osx
+lifex ───> logx
+errx  ───> eris
+seq   ───> sonyflake、google/uuid、osx
+testx ───> testify/require、kr/pretty
 ```
 
 各业务包的测试可以依赖 `testx`，生产包不依赖 `testx`。
@@ -107,6 +121,8 @@ testx ──> testify/require、kr/pretty
 
 - 单元测试与被测代码使用相同包名，覆盖公共行为、既定配置和关键边界。
 - `cmdx` 测试验证根命令默认配置以及 `WrapRunE` 对哨兵错误和真实错误的处理。
+- `codec/json` 测试验证 `string` 与 `[]byte` 两种载体的序列化、反序列化和 `Must` 版本的错误路径。
+- `conv` 测试验证空输入零值语义和常规互转结果。
 - `lifex` 测试验证初始化顺序与失败中断、解构逆序与错误隔离、`Shutdown` 幂等与并发 `Wait`，并通过子进程重入验证信号触发退出和第二次信号强制退出，不访问外部资源。
 - `logx` 测试验证全局日志包装、两阶段初始化、文件刷新以及标准日志接管。
 - `osx` 测试验证调试模式、环境变量优先级、主机与路径信息、扩展名替换、构建版本序列化以及 Panic/Panicf 的堆栈输出与 panic 透传。
