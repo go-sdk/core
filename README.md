@@ -90,6 +90,15 @@ debug := osx.GetEnv(false, "APP_DEBUG", "DEBUG")
 
 `GetEnv` 按名称顺序读取第一个已设置的环境变量。变量即使为空或无法转换也会立即采用，不再尝试后续名称；转换失败时返回目标类型的零值。只有全部变量都未设置时才返回默认值。
 
+### 异常退出
+
+```go
+osx.Panic("unexpected state")
+osx.Panicf("unexpected state: %s", reason)
+```
+
+`Panic` 先将给定值和从调用方开始的调用堆栈以易读格式打印到标准错误输出，再调用内置 `panic` 保持原有行为；`Panicf` 按 format 格式化参数后行为一致。
+
 ### 系统与路径信息
 
 ```go

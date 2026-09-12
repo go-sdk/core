@@ -1,7 +1,6 @@
 package seq
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -21,7 +20,7 @@ func init() {
 		MachineID: func() (int, error) { return machineID, nil },
 	})
 	if err != nil {
-		panic(fmt.Sprintf("seq: sonyflake init failed, check SONYFLAKE_START_YEAR(%d) and SONYFLAKE_MACHINE_ID(%d): %v", year, machineID, err))
+		osx.Panicf("seq: sonyflake init failed, check SONYFLAKE_START_YEAR(%d) and SONYFLAKE_MACHINE_ID(%d): %v", year, machineID, err)
 	}
 }
 
@@ -31,7 +30,7 @@ func init() {
 func NextID() string {
 	id, err := sf.NextID()
 	if err != nil {
-		panic(err)
+		osx.Panic(err)
 	}
 	return strconv.FormatInt(id, 10)
 }
