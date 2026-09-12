@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mattn/go-colorable"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
@@ -92,7 +93,8 @@ func loggerWriters(filename string) io.Writer {
 
 func loggerConsoleWriter() io.WriteCloser {
 	return zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
-		w.Out = os.Stdout
+		w.Out = colorable.NewColorableStdout()
+		w.NoColor = osx.GetEnv[bool](false, "LOGX_NO_COLOR")
 		w.TimeFormat = zerolog.TimeFieldFormat
 		w.TimeLocation = time.Local
 	})

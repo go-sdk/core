@@ -43,6 +43,7 @@ core/
 ### `logx`
 
 - 基于 `github.com/rs/zerolog`。
+- 控制台输出经 go-colorable 包装标准输出，Windows 终端下颜色转义可正常显示。
 - 包初始化时建立默认全局日志，并同步接管 zerolog、`log/slog` 和标准库 `log`；默认日志文件路径来自 `LOGX_FILE_PATH`。
 - 应用读取配置后可以再次调用 `Init`，将日志同时写入标准输出和滚动文件。
 - 文件滚动参数读取 `LOGX_FILE_SIZE`、`LOGX_FILE_AGE`、`LOGX_FILE_BACKUPS`、`LOGX_FILE_LOCALTIME`、`LOGX_FILE_COMPRESS` 环境变量。

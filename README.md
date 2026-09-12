@@ -66,7 +66,7 @@ defer logx.Close()
 logx.Info().Str("service", "example").Msg("服务已启动")
 ```
 
-重新调用 `Init` 会先刷新并关闭此前创建的文件 Writer。日志资源按进程统一管理，不使用独立 Logger 生命周期。
+重新调用 `Init` 会先刷新并关闭此前创建的文件 Writer。日志资源按进程统一管理，不使用独立 Logger 生命周期。控制台输出经 go-colorable 包装，在 Windows 终端下也能正常显示颜色。
 
 包初始化时若设置了 `LOGX_FILE_PATH`，默认日志会同时写入该滚动文件。文件滚动参数通过环境变量配置：
 
