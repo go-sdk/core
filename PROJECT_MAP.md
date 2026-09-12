@@ -42,8 +42,9 @@ core/
 ### `logx`
 
 - 基于 `github.com/rs/zerolog`。
-- 包初始化时建立默认全局日志，并同步接管 zerolog、`log/slog` 和标准库 `log`。
+- 包初始化时建立默认全局日志，并同步接管 zerolog、`log/slog` 和标准库 `log`；默认日志文件路径来自 `LOGX_FILE_PATH`。
 - 应用读取配置后可以再次调用 `Init`，将日志同时写入标准输出和滚动文件。
+- 文件滚动参数读取 `LOGX_FILE_SIZE`、`LOGX_FILE_AGE`、`LOGX_FILE_BACKUPS`、`LOGX_FILE_LOCALTIME`、`LOGX_FILE_COMPRESS` 环境变量。
 - 文件日志使用异步 Writer，所有文件 Writer 由进程统一通过 `Init` 和 `Close` 管理。
 - `logx/log.go` 来源于 zerolog 上游，不在本仓库中修改。
 
@@ -63,8 +64,8 @@ core/
 
 ### `seq`
 
-- 使用 Sonyflake 生成十进制字符串 ID，机器编号固定为 `56565`。
-- 固定机器编号要求同一时间只运行一个生成器实例。
+- 使用 Sonyflake 生成十进制字符串 ID，起始年份和机器编号读取 `SONYFLAKE_START_YEAR`、`SONYFLAKE_MACHINE_ID` 环境变量（默认 2020 和 56565），初始化失败直接 panic。
+- 机器编号约束为同一时间只运行一个生成器实例。
 - 使用 `google/uuid` 生成 UUID v7，并在包初始化时启用随机池。
 
 ### `testx`
@@ -78,7 +79,7 @@ core/
 restx ──> logx ──> osx
 cmdx  ──> cobra、errx、osx
 errx  ──> eris
-seq   ──> sonyflake、google/uuid
+seq   ──> sonyflake、google/uuid、osx
 testx ──> testify/require、kr/pretty
 ```
 
@@ -97,5 +98,5 @@ testx ──> testify/require、kr/pretty
 - `logx` 测试验证全局日志包装、两阶段初始化、文件刷新以及标准日志接管。
 - `osx` 测试验证调试模式、环境变量优先级、主机与路径信息、扩展名替换以及构建版本序列化。
 - `restx` 使用本地 `httptest` 服务验证客户端配置、调试模式、请求和 Cookie Jar，不访问外部接口。
-- `seq` 同时验证格式、固定机器编号、唯一性和进程内并发安全。
+- `seq` 同时验证格式、默认机器编号、唯一性和进程内并发安全。
 - `testx` 使用内部测试替身覆盖成功与失败分支，避免依赖自身断言验证核心流程。

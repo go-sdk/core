@@ -68,6 +68,19 @@ logx.Info().Str("service", "example").Msg("服务已启动")
 
 重新调用 `Init` 会先刷新并关闭此前创建的文件 Writer。日志资源按进程统一管理，不使用独立 Logger 生命周期。
 
+包初始化时若设置了 `LOGX_FILE_PATH`，默认日志会同时写入该滚动文件。文件滚动参数通过环境变量配置：
+
+| 环境变量              | 含义             | 默认值 |
+|-----------------------|------------------|--------|
+| `LOGX_FILE_PATH`      | 默认日志文件路径 | 空     |
+| `LOGX_FILE_SIZE`      | 单文件大小（MB） | `30`   |
+| `LOGX_FILE_AGE`       | 旧文件保留天数   | `90`   |
+| `LOGX_FILE_BACKUPS`   | 旧文件保留数量   | `10`   |
+| `LOGX_FILE_LOCALTIME` | 使用本地时间轮转 | `true` |
+| `LOGX_FILE_COMPRESS`  | 压缩旧文件       | `true` |
+
+变量为空或无法转换时遵循 `osx.GetEnv` 语义返回零值而非默认值，例如 `LOGX_FILE_SIZE` 为空时单文件大小为零，由 lumberjack 回退到其自身的 100MB 默认值。
+
 ### 环境变量
 
 ```go
@@ -108,7 +121,7 @@ uuid := seq.UUID()
 shortUUID := seq.UUIDShort()
 ```
 
-Snowflake 生成器使用固定机器编号 `56565`，适用于同一时间只运行一个生成器实例的场景。UUID 使用 v7 格式，并在包初始化时启用随机池。
+Snowflake 生成器的起始年份默认 `2020`，机器编号默认 `56565`，可分别通过 `SONYFLAKE_START_YEAR` 和 `SONYFLAKE_MACHINE_ID` 环境变量覆盖（机器编号取值范围为 `[0, 65535]`，起始年份须早于当前时间）。机器编号的唯一性范围为同一时间只运行一个生成器实例；非法取值会在包初始化时 panic。UUID 使用 v7 格式，并在包初始化时启用随机池。
 
 ### 测试辅助
 

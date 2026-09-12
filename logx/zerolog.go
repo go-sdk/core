@@ -43,7 +43,7 @@ func init() {
 	zerolog.ErrorMarshalFunc = zerolog.ErrorStackMarshaler
 	zerolog.ErrorHandler = func(err error) { _, _ = fmt.Fprintf(os.Stderr, "non-expected logger error: %v", err) }
 
-	Init("")
+	Init(osx.GetEnv[string]("", "LOGX_FILE_PATH"))
 }
 
 // Init 初始化或重新配置全局日志，并同步设置 zerolog 包级日志、slog 默认日志和标准库日志。
@@ -104,10 +104,11 @@ func loggerFileWriter(filename string) io.WriteCloser {
 	}
 	fw := &lumberjack.Logger{
 		Filename:   filename,
-		MaxSize:    30,
-		MaxAge:     90,
-		MaxBackups: 10,
-		LocalTime:  true,
+		MaxSize:    osx.GetEnv[int](30, "LOGX_FILE_SIZE"),
+		MaxAge:     osx.GetEnv[int](90, "LOGX_FILE_AGE"),
+		MaxBackups: osx.GetEnv[int](10, "LOGX_FILE_BACKUPS"),
+		LocalTime:  osx.GetEnv[bool](true, "LOGX_FILE_LOCALTIME"),
+		Compress:   osx.GetEnv[bool](true, "LOGX_FILE_COMPRESS"),
 	}
 	w := diode.NewWriter(fw, 1000, 10*time.Millisecond, nil)
 	mu.Lock()
