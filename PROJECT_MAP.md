@@ -2,7 +2,7 @@
 
 ## 项目定位
 
-`github.com/go-sdk/core` 是个人 Go 基础类库，集中提供错误处理、日志、环境与版本信息、HTTP 客户端、序列生成和测试辅助能力。
+`github.com/go-sdk/core` 是个人 Go 基础类库，集中提供错误处理、生命周期、日志、环境与版本信息、HTTP 客户端、序列生成和测试辅助能力。
 
 ## 目录结构
 
@@ -12,6 +12,7 @@ core/
 ├── .editorconfig                    编辑器格式规范
 ├── cmdx/                            cobra 根命令创建和入口包装
 ├── errx/                            错误创建、包装、解包和判断
+├── lifex/                           全局信号、初始化和解构管理
 ├── logx/                            进程级全局日志及 zerolog 配置
 ├── osx/                             调试状态、环境变量和构建版本信息
 ├── restx/                           预配置的 resty HTTP 客户端
@@ -39,6 +40,13 @@ core/
 - 基于 `github.com/rotisserie/eris`。
 - 暴露错误创建、格式化、包装、解包、根因和类型判断的快捷入口。
 - 提供需要非空错误占位时使用的 `Nil` 哨兵值。
+
+### `lifex`
+
+- 管理进程级生命周期：`OnInit` 和 `OnDeinit` 注册初始化和解构函数，`Init` 按注册顺序执行初始化，`Wait` 阻塞等待退出后按注册逆序执行解构。
+- 退出由 SIGINT/SIGTERM 信号或 `Shutdown` 触发；信号触发视为正常退出，主动退出返回 `Shutdown` 携带的原因。
+- `Shutdown` 幂等，多次调用只触发一次退出；解构期间的第二个退出信号跳过剩余解构强制退出。
+- 解构函数自身的错误经 `logx` 记录，不影响其余解构执行和 `Wait` 的返回值。
 
 ### `logx`
 
@@ -81,6 +89,7 @@ core/
 ```text
 restx ──> logx ──> osx
 cmdx  ──> cobra、errx、osx
+lifex ──> logx
 errx  ──> eris
 seq   ──> sonyflake、google/uuid、osx
 testx ──> testify/require、kr/pretty
@@ -98,6 +107,7 @@ testx ──> testify/require、kr/pretty
 
 - 单元测试与被测代码使用相同包名，覆盖公共行为、既定配置和关键边界。
 - `cmdx` 测试验证根命令默认配置以及 `WrapRunE` 对哨兵错误和真实错误的处理。
+- `lifex` 测试验证初始化顺序与失败中断、解构逆序与错误隔离、`Shutdown` 幂等与并发 `Wait`，并通过子进程重入验证信号触发退出和第二次信号强制退出，不访问外部资源。
 - `logx` 测试验证全局日志包装、两阶段初始化、文件刷新以及标准日志接管。
 - `osx` 测试验证调试模式、环境变量优先级、主机与路径信息、扩展名替换、构建版本序列化以及 Panic/Panicf 的堆栈输出与 panic 透传。
 - `restx` 使用本地 `httptest` 服务验证客户端配置、调试模式、请求和 Cookie Jar，不访问外部接口。

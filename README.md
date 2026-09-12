@@ -1,6 +1,6 @@
 # core
 
-`core` 是个人使用的 Go 基础类库，模块路径为 `github.com/go-sdk/core`。项目用于统一常见基础能力和默认行为，包括错误处理、全局日志、环境变量、构建版本、HTTP 客户端、序列生成和测试辅助。
+`core` 是个人使用的 Go 基础类库，模块路径为 `github.com/go-sdk/core`。项目用于统一常见基础能力和默认行为，包括错误处理、生命周期、全局日志、环境变量、构建版本、HTTP 客户端、序列生成和测试辅助。
 
 ## 环境要求
 
@@ -14,15 +14,16 @@ go get github.com/go-sdk/core
 
 ## 包概览
 
-| 包      | 用途                               |
-|---------|------------------------------------|
-| `cmdx`  | 创建 cobra 根命令并包装命令入口    |
-| `errx`  | 创建、包装和判断错误               |
-| `logx`  | 配置并使用进程级全局日志           |
-| `osx`   | 读取系统、路径、环境变量和构建信息 |
-| `restx` | 创建带统一默认配置的 resty 客户端  |
-| `seq`   | 生成 Snowflake ID 和 UUID v7       |
-| `testx` | 提供常用测试断言和输出辅助         |
+| 包      | 用途                                 |
+|---------|--------------------------------------|
+| `cmdx`  | 创建 cobra 根命令并包装命令入口      |
+| `errx`  | 创建、包装和判断错误                 |
+| `lifex` | 管理信号、初始化和解构的进程生命周期 |
+| `logx`  | 配置并使用进程级全局日志             |
+| `osx`   | 读取系统、路径、环境变量和构建信息   |
+| `restx` | 创建带统一默认配置的 resty 客户端    |
+| `seq`   | 生成 Snowflake ID 和 UUID v7         |
+| `testx` | 提供常用测试断言和输出辅助           |
 
 ## 使用示例
 
@@ -54,6 +55,31 @@ if errx.Is(err, cause) {
 	// 处理目标错误
 }
 ```
+
+### 生命周期
+
+```go
+lifex.OnInit(func() error {
+	// 建立资源连接
+	return nil
+})
+
+lifex.OnDeinit(func() error {
+	// 释放资源
+	return nil
+})
+
+if err := lifex.Init(); err != nil {
+	logx.Error().Err(err).Msg("初始化失败")
+	return
+}
+
+if err := lifex.Wait(); err != nil {
+	logx.Error().Err(err).Msg("进程异常退出")
+}
+```
+
+`Init` 按注册顺序执行初始化函数，任一失败立即停止后续执行并返回该错误。`Wait` 阻塞等待 SIGINT/SIGTERM 信号或 `Shutdown` 触发退出，然后按注册逆序执行解构函数：信号触发视为正常退出返回 nil，主动退出返回 `Shutdown` 携带的原因；`Shutdown` 幂等，多次调用只触发一次退出。解构函数自身的错误经 `logx` 记录，不影响其余解构执行和 `Wait` 的返回值；解构期间再次收到退出信号时跳过剩余解构强制退出，避免解构卡死导致进程无法终止。
 
 ### 全局日志
 
