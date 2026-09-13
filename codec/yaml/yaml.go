@@ -1,15 +1,15 @@
-package json
+package yaml
 
 import (
-	"encoding/json/v2"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/go-sdk/core/codec"
 	"github.com/go-sdk/core/conv"
 	"github.com/go-sdk/core/osx"
 )
 
-func Marshal[T codec.Data](in any, opts ...json.Options) (T, error) {
-	bs, err := json.Marshal(in, opts...)
+func Marshal[T codec.Data](in any) (T, error) {
+	bs, err := yaml.Marshal(in)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -24,15 +24,15 @@ func Marshal[T codec.Data](in any, opts ...json.Options) (T, error) {
 	return out, nil
 }
 
-func MustMarshal[T codec.Data](in any, opts ...json.Options) T {
-	v, err := Marshal[T](in, opts...)
+func MustMarshal[T codec.Data](in any) T {
+	v, err := Marshal[T](in)
 	if err != nil {
 		osx.Panic(err)
 	}
 	return v
 }
 
-func Unmarshal[T codec.Data](in T, out any, opts ...json.Options) error {
+func Unmarshal[T codec.Data](in T, out any) error {
 	var bs []byte
 	switch v := any(in).(type) {
 	case string:
@@ -40,11 +40,11 @@ func Unmarshal[T codec.Data](in T, out any, opts ...json.Options) error {
 	case []byte:
 		bs = v
 	}
-	return json.Unmarshal(bs, out, opts...)
+	return yaml.Unmarshal(bs, out)
 }
 
-func MustUnmarshal[V any, T codec.Data](in T, opts ...json.Options) (v V) {
-	if err := Unmarshal(in, &v, opts...); err != nil {
+func MustUnmarshal[V any, T codec.Data](in T) (v V) {
+	if err := Unmarshal(in, &v); err != nil {
 		osx.Panic(err)
 	}
 	return v

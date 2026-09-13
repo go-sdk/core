@@ -1,6 +1,6 @@
 # core
 
-`core` 是个人使用的 Go 基础类库，模块路径为 `github.com/go-sdk/core`。项目用于统一常见基础能力和默认行为，包括错误处理、生命周期、全局日志、环境变量、构建版本、HTTP 客户端、JSON 编解码、零拷贝类型转换、序列生成和测试辅助。
+`core` 是个人使用的 Go 基础类库，模块路径为 `github.com/go-sdk/core`。项目用于统一常见基础能力和默认行为，包括错误处理、生命周期、全局日志、环境变量、构建版本、HTTP 客户端、JSON 与 YAML 编解码、零拷贝类型转换、序列生成和测试辅助。
 
 ## 环境要求
 
@@ -18,6 +18,7 @@ go get github.com/go-sdk/core
 |--------------|--------------------------------------|
 | `cmdx`       | 创建 cobra 根命令并包装命令入口      |
 | `codec/json` | 基于 encoding/json/v2 的 JSON 编解码 |
+| `codec/yaml` | 基于 go.yaml.in/yaml/v3 的 YAML 编解码 |
 | `conv`       | string 与 []byte 零拷贝互转          |
 | `errx`       | 创建、包装和判断错误                 |
 | `lifex`      | 管理信号、初始化和解构的进程生命周期 |
@@ -59,6 +60,19 @@ value := json.MustUnmarshal[Data](bs)
 ```
 
 `Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体，内部经 `conv` 零拷贝互转；`Must` 前缀版本在出错时直接 panic。
+
+### YAML 编解码
+
+```go
+s, err := yaml.Marshal[string](data)
+bs, err := yaml.Marshal[[]byte](data)
+
+var out Data
+err = yaml.Unmarshal(s, &out)
+value := yaml.MustUnmarshal[Data](bs)
+```
+
+`codec/yaml` 的方法与 `codec/json` 一一对应，同样通过泛型参数支持 `string` 与 `[]byte` 两种载体并复用 `conv` 零拷贝互转；yaml/v3 没有编解码选项，因此不接受额外参数。上游对 `chan`、`func` 等无法表示的类型会直接 panic 而非返回错误。
 
 ### 零拷贝转换
 

@@ -2,7 +2,7 @@
 
 ## 项目定位
 
-`github.com/go-sdk/core` 是个人 Go 基础类库，集中提供错误处理、生命周期、日志、环境与版本信息、HTTP 客户端、JSON 编解码、零拷贝类型转换、序列生成和测试辅助能力。
+`github.com/go-sdk/core` 是个人 Go 基础类库，集中提供错误处理、生命周期、日志、环境与版本信息、HTTP 客户端、JSON 与 YAML 编解码、零拷贝类型转换、序列生成和测试辅助能力。
 
 ## 目录结构
 
@@ -12,6 +12,7 @@ core/
 ├── .editorconfig                    编辑器格式规范
 ├── cmdx/                            cobra 根命令创建和入口包装
 ├── codec/json/                     基于 encoding/json/v2 的泛型 JSON 编解码
+├── codec/yaml/                     基于 go.yaml.in/yaml/v3 的泛型 YAML 编解码
 ├── conv/                           string 与 []byte 零拷贝互转
 ├── errx/                            错误创建、包装、解包和判断
 ├── lifex/                           全局信号、初始化和解构管理
@@ -42,6 +43,13 @@ core/
 - 基于 `encoding/json/v2`，`Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体。
 - 载体转换经 `conv` 零拷贝完成，`[]byte` 路径直接复用原切片。
 - `Must` 前缀版本在出错时经 `osx.Panic` 直接 panic。
+
+### `codec/yaml`
+
+- 基于 `go.yaml.in/yaml/v3`，方法与 `codec/json` 对应，同样通过泛型参数支持 `string` 与 `[]byte` 两种载体；yaml/v3 没有编解码选项，因此不接受额外参数。
+- 载体转换经 `conv` 零拷贝完成，`[]byte` 路径直接复用原切片。
+- `Must` 前缀版本在出错时经 `osx.Panic` 直接 panic。
+- 上游对 `chan`、`func` 等无法表示的类型直接 panic 而非返回错误。
 
 ### `conv`
 
@@ -104,6 +112,7 @@ core/
 ```text
 restx ───> logx ───> osx
 codec/json -> conv、osx
+codec/yaml -> conv、osx
 cmdx  ───> cobra、errx、osx
 lifex ───> logx
 errx  ───> eris
@@ -124,6 +133,7 @@ testx ───> testify/require、kr/pretty
 - 单元测试与被测代码使用相同包名，覆盖公共行为、既定配置和关键边界。
 - `cmdx` 测试验证根命令默认配置以及 `WrapRunE` 对哨兵错误和真实错误的处理。
 - `codec/json` 测试验证 `string` 与 `[]byte` 两种载体的序列化、反序列化和 `Must` 版本的错误路径。
+- `codec/yaml` 测试验证 `string` 与 `[]byte` 两种载体的序列化、反序列化和 `Must` 版本的错误路径。
 - `conv` 测试验证空输入零值语义和常规互转结果。
 - `errx` 测试验证创建、包装、根因、类型匹配、多错误合并和 `Nil` 哨兵行为。
 - `lifex` 测试验证初始化顺序与失败中断、解构逆序与错误隔离、`Shutdown` 幂等与并发 `Wait`，并通过子进程重入验证信号触发退出和第二次信号强制退出，不访问外部资源。
