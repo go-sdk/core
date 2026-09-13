@@ -55,6 +55,54 @@ func TestMatchErrorType(t *testing.T) {
 	var other interface{ Temporary() bool }
 	testx.False(t, As(err, &other))
 	testx.False(t, Is(err, errors.New("其他错误")))
+
+	t.Run("AsType 按类型提取", func(t *testing.T) {
+		matched, ok := AsType[*testError](err)
+		testx.True(t, ok)
+		testx.Same(t, source, matched)
+
+		_, ok = AsType[*testError](errors.New("其他错误"))
+		testx.False(t, ok)
+
+		_, ok = AsType[*testError](nil)
+		testx.False(t, ok)
+	})
+}
+
+func TestJoinError(t *testing.T) {
+	first := errors.New("第一个错误")
+	second := errors.New("第二个错误")
+
+	t.Run("全部为空返回空", func(t *testing.T) {
+		testx.NoError(t, Join())
+		testx.NoError(t, Join(nil, nil))
+	})
+
+	t.Run("保留全部错误消息", func(t *testing.T) {
+		testx.EqualError(t, Join(first, nil, second), "第一个错误\n第二个错误")
+	})
+
+	t.Run("匹配任意成员", func(t *testing.T) {
+		err := Join(first, second)
+		testx.ErrorIs(t, err, first)
+		testx.ErrorIs(t, err, second)
+		testx.False(t, Is(err, errors.New("其他错误")))
+	})
+
+	t.Run("包装过的成员同样可以匹配", func(t *testing.T) {
+		cause := errors.New("根因")
+		err := Join(Wrap(cause, "外层"), second)
+		testx.ErrorIs(t, err, cause)
+	})
+
+	t.Run("按类型提取成员", func(t *testing.T) {
+		source := &testError{code: 9}
+		err := Join(first, Wrap(source, "外层"))
+
+		var target *testError
+		testx.True(t, As(err, &target))
+		testx.Same(t, source, target)
+	})
 }
 
 func TestNilSentinel(t *testing.T) {

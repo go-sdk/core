@@ -78,7 +78,16 @@ err := errx.Wrap(cause, "保存数据")
 if errx.Is(err, cause) {
 	// 处理目标错误
 }
+
+joined := errx.Join(errA, errB)
+if errx.Is(joined, errA) {
+	// 命中合并中的任一错误
+}
+
+target, ok := errx.AsType[*MyError](joined)
 ```
+
+`New`、`Newf`、`Wrap`、`Wrapf`、`Unwrap` 和 `Cause` 基于 eris；`Join`、`Is`、`As` 和 `AsType` 使用标准库 `errors`，其中 `Is` 和 `As` 可以遍历 `Join` 合并的多错误链，`AsType` 通过类型参数提取指定类型的错误。`Unwrap` 和 `Cause` 只沿单链展开，遇到 `Join` 合并的错误时停在该节点。`As` 沿用标准库契约，目标必须是合法的非空指针。
 
 ### 生命周期
 
