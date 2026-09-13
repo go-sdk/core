@@ -1,6 +1,6 @@
 # core
 
-`core` 是个人使用的 Go 基础类库，模块路径为 `github.com/go-sdk/core`。项目用于统一常见基础能力和默认行为，包括错误处理、生命周期、全局日志、环境变量、构建版本、HTTP 客户端、JSON 与 YAML 编解码、零拷贝类型转换、序列生成和测试辅助。
+`core` 是个人使用的 Go 基础类库，模块路径为 `github.com/go-sdk/core`。项目用于统一常见基础能力和默认行为，包括配置加载、错误处理、生命周期、全局日志、环境变量、构建版本、HTTP 客户端、JSON 与 YAML 编解码、零拷贝类型转换、序列生成和测试辅助。
 
 ## 环境要求
 
@@ -14,21 +14,76 @@ go get github.com/go-sdk/core
 
 ## 包概览
 
-| 包           | 用途                                 |
-|--------------|--------------------------------------|
-| `cmdx`       | 创建 cobra 根命令并包装命令入口      |
-| `codec/json` | 基于 encoding/json/v2 的 JSON 编解码 |
+| 包           | 用途                                   |
+|--------------|----------------------------------------|
+| `cmdx`       | 创建 cobra 根命令并包装命令入口        |
+| `codec/json` | 基于 encoding/json/v2 的 JSON 编解码   |
 | `codec/yaml` | 基于 go.yaml.in/yaml/v3 的 YAML 编解码 |
-| `conv`       | string 与 []byte 零拷贝互转          |
-| `errx`       | 创建、包装和判断错误                 |
-| `lifex`      | 管理信号、初始化和解构的进程生命周期 |
-| `logx`       | 配置并使用进程级全局日志             |
-| `osx`        | 读取系统、路径、环境变量和构建信息   |
-| `restx`      | 创建带统一默认配置的 resty 客户端    |
-| `seq`        | 生成 Snowflake ID 和 UUID v7         |
-| `testx`      | 提供常用测试断言和输出辅助           |
+| `config`     | 加载文件和环境变量配置                 |
+| `conv`       | string 与 []byte 零拷贝互转            |
+| `errx`       | 创建、包装和判断错误                   |
+| `lifex`      | 管理信号、初始化和解构的进程生命周期   |
+| `logx`       | 配置并使用进程级全局日志               |
+| `osx`        | 读取系统、路径、环境变量和构建信息     |
+| `restx`      | 创建带统一默认配置的 resty 客户端      |
+| `seq`        | 生成 Snowflake ID 和 UUID v7           |
+| `testx`      | 提供常用测试断言和输出辅助             |
 
 ## 使用示例
+
+### 配置
+
+`config` 支持 YAML 和 JSON 文件，并使用 `.` 访问嵌套配置：
+
+```yaml
+database:
+  type: postgres
+  port: 5432
+dsn: "postgres://${database.type}:${database.port}/app"
+```
+
+```go
+cfg := config.New(
+	config.WithFile("config.yaml"),
+	config.WithFileWatch(true),
+)
+if err := cfg.Load(); err != nil {
+	return err
+}
+
+databaseType, ok := cfg.Get[string]("database.type")
+databasePort := cfg.MustGet[int]("database.port")
+raw := cfg.Raw()
+```
+
+`WithFile` 的第二个参数可以在文件没有标准扩展名时显式指定格式，例如 `config.WithFile("config.data", "json")`。文件监听默认关闭；启用后由 `lifex` 在进程解构时关闭，文件重载失败会保留最后一次有效配置。
+
+环境变量只读取 `APP__` 前缀，移除前缀后将 key 转为小写，并使用 `__` 表示层级。例如 `APP__DATABASE__TYPE=mysql` 覆盖 `database.type`。环境变量优先于文件配置，`${database.type}` 使用与 `Get` 相同的路径；缺失引用或循环引用会使加载失败。
+
+`Raw` 返回嵌套数据的深拷贝。`DecodeTo` 使用 `json` tag，并允许将环境变量字符串弱类型转换到目标字段：
+
+```go
+type AppConfig struct {
+	Database struct {
+		Type string `json:"type"`
+		Port int    `json:"port"`
+	} `json:"database"`
+}
+
+var appConfig AppConfig
+if err := cfg.DecodeTo(&appConfig); err != nil {
+	return err
+}
+```
+
+包级默认实例在初始化时解析配置文件，任何失败都会直接 panic。`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置 `CONFIG_PATH` 时，按测试模块根目录 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序读取第一个存在的文件，全部不存在时仅加载环境变量。默认实例可通过 `SetDefault` 替换：
+
+```go
+databaseType, ok := config.Get[string]("database.type")
+databasePort := config.MustGet[int]("database.port")
+
+config.SetDefault(cfg)
+```
 
 ### 命令行
 

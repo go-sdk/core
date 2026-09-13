@@ -3,7 +3,9 @@ module github.com/go-sdk/core
 go 1.27.0
 
 require (
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-resty/resty/v2 v2.17.2
+	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/kr/pretty v0.3.1
 	github.com/mattn/go-colorable v0.1.15
