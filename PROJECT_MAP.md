@@ -44,7 +44,7 @@ core/
 - 使用 `.` 分隔嵌套路径，分别保存扁平数据和嵌套数据；`Get`、`MustGet` 和 `Exists` 查询扁平数据，`Raw` 返回嵌套数据的深拷贝。
 - `WithFile` 指定 YAML 或 JSON 文件，并可通过第二个可选参数显式指定 `yaml` 或 `json`；`WithFileWatch` 默认关闭，启用后由 `lifex` 统一关闭文件监听器。
 - `Load` 先读取文件，再将 `APP__` 开头的环境变量转换为小写路径并覆盖文件值，最后解析 `${key}` 引用；引用使用与 `Get` 相同的路径，并检测缺失引用和循环引用。
-- `DecodeTo` 使用 `json` tag 和弱类型转换将嵌套数据解码到目标值。
+- `DecodeTo` 使用 `json` tag 和弱类型转换将嵌套数据解码到目标值，并将字符串按 Go duration 格式解析为 `time.Duration`、按 RFC3339 格式解析为 `time.Time`。
 - 包初始化时解析默认配置文件，任何失败直接 panic：`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置时按测试模块根目录 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序选择第一个存在的文件，全部不存在时仅加载环境变量。
 - `SetDefault` 替换包级 `Get` 和 `MustGet` 使用的默认实例。
 

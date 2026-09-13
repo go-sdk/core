@@ -60,7 +60,7 @@ raw := cfg.Raw()
 
 环境变量只读取 `APP__` 前缀，移除前缀后将 key 转为小写，并使用 `__` 表示层级。例如 `APP__DATABASE__TYPE=mysql` 覆盖 `database.type`。环境变量优先于文件配置，`${database.type}` 使用与 `Get` 相同的路径；缺失引用或循环引用会使加载失败。
 
-`Raw` 返回嵌套数据的深拷贝。`DecodeTo` 使用 `json` tag，并允许将环境变量字符串弱类型转换到目标字段：
+`Raw` 返回嵌套数据的深拷贝。`DecodeTo` 使用 `json` tag，并允许将环境变量字符串弱类型转换到目标字段；字符串会按 Go duration 格式解析到 `time.Duration`，按 RFC3339 格式解析到 `time.Time`：
 
 ```go
 type AppConfig struct {

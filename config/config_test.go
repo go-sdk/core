@@ -78,6 +78,38 @@ func TestDecodeToUsesJSONTags(t *testing.T) {
 	testx.Error(t, c.DecodeTo(target))
 }
 
+func TestDecodeToParsesDurationAndTime(t *testing.T) {
+	filename := writeConfigFile(t, "config.json", `{"timeout":"24h","started_at":"2026-09-13T08:30:00Z"}`)
+	c := New(WithFile(filename))
+	testx.NoError(t, c.Load())
+
+	var target struct {
+		Timeout   time.Duration `json:"timeout"`
+		StartedAt time.Time     `json:"started_at"`
+	}
+
+	testx.NoError(t, c.DecodeTo(&target))
+	testx.Equal(t, 24*time.Hour, target.Timeout)
+	testx.Equal(
+		t,
+		time.Date(2026, time.September, 13, 8, 30, 0, 0, time.UTC),
+		target.StartedAt,
+	)
+}
+
+func TestDecodeToRejectsInvalidDurationAndTime(t *testing.T) {
+	filename := writeConfigFile(t, "config.json", `{"timeout":"tomorrow","started_at":"not-a-time"}`)
+	c := New(WithFile(filename))
+	testx.NoError(t, c.Load())
+
+	var target struct {
+		Timeout   time.Duration `json:"timeout"`
+		StartedAt time.Time     `json:"started_at"`
+	}
+
+	testx.Error(t, c.DecodeTo(&target))
+}
+
 func TestVariableErrors(t *testing.T) {
 	missing := writeConfigFile(t, "missing.yaml", `value: "${missing}"`)
 	testx.ErrorContains(t, New(WithFile(missing)).Load(), "does not exist")

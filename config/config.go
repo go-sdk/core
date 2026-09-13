@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/cast"
@@ -112,7 +113,7 @@ func (c *Config) Raw() map[string]any {
 	return data
 }
 
-// DecodeTo 使用 json tag 将完整配置解码到目标值。
+// DecodeTo 使用 json tag 将完整配置解码到目标值，并解析 duration 与 RFC3339 时间。
 func (c *Config) DecodeTo(target any) error {
 	if target == nil {
 		return fmt.Errorf("config: decode target must be a non-nil pointer")
@@ -130,6 +131,10 @@ func (c *Config) DecodeTo(target any) error {
 		Result:           target,
 		TagName:          "json",
 		WeaklyTypedInput: true,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
+		),
 	})
 	if err != nil {
 		return fmt.Errorf("config: create decoder: %w", err)
