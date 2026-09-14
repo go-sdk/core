@@ -11,10 +11,10 @@ core/
 ├── .github/workflows/golang.yml     持续集成与 Tag Release
 ├── .editorconfig                    编辑器格式规范
 ├── cmdx/                            cobra 根命令创建和入口包装
-├── codec/json/                     基于 encoding/json/v2 的泛型 JSON 编解码
-├── codec/yaml/                     基于 go.yaml.in/yaml/v3 的泛型 YAML 编解码
-├── config/                         YAML/JSON、环境变量与文件监听配置
-├── conv/                           string 与 []byte 零拷贝互转
+├── codec/json/                      基于 encoding/json/v2 的泛型 JSON 编解码
+├── codec/yaml/                      基于 go.yaml.in/yaml/v3 的泛型 YAML 编解码
+├── config/                          YAML/JSON、环境变量与文件监听配置
+├── conv/                            string 与 []byte 零拷贝互转
 ├── errx/                            错误创建、包装、解包和判断
 ├── lifex/                           全局信号、初始化和解构管理
 ├── logx/                            进程级全局日志及 zerolog 配置
@@ -42,8 +42,10 @@ core/
 ### `config`
 
 - 使用 `.` 分隔嵌套路径，分别保存扁平数据和嵌套数据；`Get`、`MustGet` 和 `Exists` 查询扁平数据，`Raw` 返回嵌套数据的深拷贝。
+- `MustGet` 在路径不存在且传入默认值时返回第一个默认值；未传默认值时触发 panic。
 - `WithFile` 指定 YAML 或 JSON 文件，并可通过第二个可选参数显式指定 `yaml` 或 `json`；`WithFileWatch` 默认关闭，启用后由 `lifex` 统一关闭文件监听器。
 - `Load` 先读取文件，再将 `APP__` 开头的环境变量转换为小写路径并覆盖文件值，最后解析 `${key}` 引用；引用使用与 `Get` 相同的路径，并检测缺失引用和循环引用。
+- 配置加载和文件监听日志使用标准 `log/slog`，保证默认配置先于 `logx` 初始化且不形成循环依赖。
 - `DecodeTo` 使用 `json` tag 和弱类型转换将嵌套数据解码到目标值，并将字符串按 Go duration 格式解析为 `time.Duration`、按 RFC3339 格式解析为 `time.Time`。
 - 包初始化时解析默认配置文件，任何失败直接 panic：`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置时按测试模块根目录 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序选择第一个存在的文件，全部不存在时仅加载环境变量。
 - `SetDefault` 替换包级 `Get` 和 `MustGet` 使用的默认实例。
@@ -75,17 +77,17 @@ core/
 ### `lifex`
 
 - 管理进程级生命周期：`OnInit` 和 `OnDeinit` 注册初始化和解构函数，`Init` 按注册顺序执行初始化，`Wait` 阻塞等待退出后按注册逆序执行解构。
-- 退出由 SIGINT/SIGTERM 信号或 `Shutdown` 触发；信号触发视为正常退出，主动退出返回 `Shutdown` 携带的原因。
+- 退出由 SIGINT/SIGTERM 信号或 `Shutdown` 触发；信号触发视为正常退出，主动退出返回 `Shutdown` 携带的原因，生命周期日志使用标准 `log/slog`。
 - `Shutdown` 幂等，多次调用只触发一次退出；解构期间的第二个退出信号跳过剩余解构强制退出。
-- 解构函数自身的错误经 `logx` 记录，不影响其余解构执行和 `Wait` 的返回值。
+- 解构函数自身的错误经默认 `log/slog` 记录，不影响其余解构执行和 `Wait` 的返回值。
 
 ### `logx`
 
 - 基于 `github.com/rs/zerolog`。
 - 控制台输出经 go-colorable 包装标准输出，Windows 终端下颜色转义可正常显示。
-- 包初始化时建立默认全局日志，并同步接管 zerolog、`log/slog` 和标准库 `log`；默认日志文件路径来自 `LOGX_FILE_PATH`。
+- 包初始化时从 `config` 读取 `log.*` 配置并建立默认全局日志，同时接管 zerolog、`log/slog` 和标准库 `log`。
 - 应用读取配置后可以再次调用 `Init`，将日志同时写入标准输出和滚动文件。
-- 文件滚动参数读取 `LOGX_FILE_SIZE`、`LOGX_FILE_AGE`、`LOGX_FILE_BACKUPS`、`LOGX_FILE_LOCALTIME`、`LOGX_FILE_COMPRESS` 环境变量。
+- 文件路径、控制台颜色和滚动参数分别读取 `log.file.*` 与 `log.no_color`，可由配置文件或 `APP__LOG__*` 环境变量提供；`log.no_color` 未配置时根据标准输出的终端颜色能力自动决定。
 - 文件日志使用异步 Writer，所有文件 Writer 由进程统一通过 `Init` 和 `Close` 管理。
 - `SetGlobalKV`、`DeleteGlobalKV` 和 `ClearGlobalKV` 维护进程级全局键值，仅用于 service、version 等进程级标识，并通过 Hook 附加到之后所有日志事件；键值对所有 `New` 创建的 Logger 生效。
 - 全局键值只在写入时加锁，日志输出通过不可变快照无锁读取，序列化阶段不持有任何锁；全局键与事件字段同名会产生重复 JSON key，调用方应保证不冲突。
@@ -108,7 +110,7 @@ core/
 
 ### `seq`
 
-- 使用 Sonyflake 生成十进制字符串 ID，起始年份和机器编号读取 `SONYFLAKE_START_YEAR`、`SONYFLAKE_MACHINE_ID` 环境变量（默认 2020 和 56565），初始化失败直接 panic。
+- 使用 Sonyflake 生成十进制字符串 ID，起始年份和机器编号读取 `sonyflake.start_year`、`sonyflake.machine_id`（默认 2020 和 56565），初始化失败直接 panic。
 - 机器编号约束为同一时间只运行一个生成器实例。
 - 使用 `google/uuid` 生成 UUID v7，并在包初始化时启用随机池。
 
@@ -120,14 +122,15 @@ core/
 ## 主要依赖关系
 
 ```text
-restx ───> logx ───> osx
-config -> codec/json、codec/yaml、lifex、logx、osx
+restx ───> logx ─┬─> config
+                 └─> osx
+config -> codec/json、codec/yaml、errx、lifex、osx
 codec/json -> conv、osx
 codec/yaml -> conv、osx
 cmdx  ───> cobra、errx、osx
-lifex ───> logx
+lifex ───> log/slog
 errx  ───> eris
-seq   ───> sonyflake、google/uuid、osx
+seq   ───> sonyflake、google/uuid、config、osx
 testx ───> testify/require、kr/pretty
 ```
 

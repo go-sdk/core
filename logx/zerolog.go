@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
@@ -18,6 +19,7 @@ import (
 	slogzerolog "github.com/samber/slog-zerolog/v2"
 	"gopkg.in/natefinch/lumberjack.v2"
 
+	"github.com/go-sdk/core/config"
 	"github.com/go-sdk/core/osx"
 )
 
@@ -44,7 +46,7 @@ func init() {
 	zerolog.ErrorMarshalFunc = zerolog.ErrorStackMarshaler
 	zerolog.ErrorHandler = func(err error) { _, _ = fmt.Fprintf(os.Stderr, "non-expected logger error: %v", err) }
 
-	Init(osx.GetEnv[string]("", "LOGX_FILE_PATH"))
+	Init(config.MustGet[string]("log.file.path", ""))
 }
 
 // Init 初始化或重新配置全局日志，并同步设置 zerolog 包级日志、slog 默认日志和标准库日志。
@@ -94,10 +96,19 @@ func loggerWriters(filename string) io.Writer {
 func loggerConsoleWriter() io.WriteCloser {
 	return zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
 		w.Out = colorable.NewColorableStdout()
-		w.NoColor = osx.GetEnv[bool](false, "LOGX_NO_COLOR")
+		w.NoColor = config.MustGet[bool]("log.no_color", !stdoutSupportsColor())
 		w.TimeFormat = zerolog.TimeFieldFormat
 		w.TimeLocation = time.Local
 	})
+}
+
+func stdoutSupportsColor() bool {
+	fd := os.Stdout.Fd()
+	return terminalSupportsColor(os.Getenv("TERM"), isatty.IsTerminal(fd), isatty.IsCygwinTerminal(fd))
+}
+
+func terminalSupportsColor(term string, terminal, cygwin bool) bool {
+	return term != "dumb" && (terminal || cygwin)
 }
 
 func loggerFileWriter(filename string) io.WriteCloser {
@@ -106,11 +117,11 @@ func loggerFileWriter(filename string) io.WriteCloser {
 	}
 	fw := &lumberjack.Logger{
 		Filename:   filename,
-		MaxSize:    osx.GetEnv[int](30, "LOGX_FILE_SIZE"),
-		MaxAge:     osx.GetEnv[int](90, "LOGX_FILE_AGE"),
-		MaxBackups: osx.GetEnv[int](10, "LOGX_FILE_BACKUPS"),
-		LocalTime:  osx.GetEnv[bool](true, "LOGX_FILE_LOCALTIME"),
-		Compress:   osx.GetEnv[bool](true, "LOGX_FILE_COMPRESS"),
+		MaxSize:    config.MustGet[int]("log.file.size", 30),
+		MaxAge:     config.MustGet[int]("log.file.age", 90),
+		MaxBackups: config.MustGet[int]("log.file.backups", 10),
+		LocalTime:  config.MustGet[bool]("log.file.localtime", true),
+		Compress:   config.MustGet[bool]("log.file.compress", true),
 	}
 	w := diode.NewWriter(fw, 1000, 10*time.Millisecond, nil)
 	mu.Lock()

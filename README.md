@@ -53,8 +53,11 @@ if err := cfg.Load(); err != nil {
 
 databaseType, ok := cfg.Get[string]("database.type")
 databasePort := cfg.MustGet[int]("database.port")
+databaseHost := cfg.MustGet("database.host", "localhost")
 raw := cfg.Raw()
 ```
+
+`MustGet` 在配置存在时返回转换后的值；配置不存在且传入默认值时返回第一个默认值，未传默认值时触发 panic。配置存在但转换失败时返回目标类型零值，不回退到默认值。
 
 `WithFile` 的第二个参数可以在文件没有标准扩展名时显式指定格式，例如 `config.WithFile("config.data", "json")`。文件监听默认关闭；启用后由 `lifex` 在进程解构时关闭，文件重载失败会保留最后一次有效配置。
 
@@ -81,6 +84,7 @@ if err := cfg.DecodeTo(&appConfig); err != nil {
 ```go
 databaseType, ok := config.Get[string]("database.type")
 databasePort := config.MustGet[int]("database.port")
+databaseHost := config.MustGet("database.host", "localhost")
 
 config.SetDefault(cfg)
 ```
@@ -220,18 +224,21 @@ ctx := logger.WithContext(context.Background())
 logx.Ctx(ctx).Info().Msg("处理请求")
 ```
 
-包初始化时若设置了 `LOGX_FILE_PATH`，默认日志会同时写入该滚动文件。文件滚动参数通过环境变量配置：
+`logx` 在包初始化时读取默认 `config` 实例，默认日志参数可以写入配置文件，也可以通过 `APP__` 环境变量覆盖：
 
-| 环境变量              | 含义             | 默认值 |
-|-----------------------|------------------|--------|
-| `LOGX_FILE_PATH`      | 默认日志文件路径 | 空     |
-| `LOGX_FILE_SIZE`      | 单文件大小（MB） | `30`   |
-| `LOGX_FILE_AGE`       | 旧文件保留天数   | `90`   |
-| `LOGX_FILE_BACKUPS`   | 旧文件保留数量   | `10`   |
-| `LOGX_FILE_LOCALTIME` | 使用本地时间轮转 | `true` |
-| `LOGX_FILE_COMPRESS`  | 压缩旧文件       | `true` |
+| 配置键               | 环境变量                    | 含义             | 默认值   |
+|----------------------|-----------------------------|------------------|----------|
+| `log.file.path`      | `APP__LOG__FILE__PATH`      | 默认日志文件路径 | 空       |
+| `log.no_color`       | `APP__LOG__NO_COLOR`        | 禁用控制台颜色   | 自动检测 |
+| `log.file.size`      | `APP__LOG__FILE__SIZE`      | 单文件大小（MB） | `30`     |
+| `log.file.age`       | `APP__LOG__FILE__AGE`       | 旧文件保留天数   | `90`     |
+| `log.file.backups`   | `APP__LOG__FILE__BACKUPS`   | 旧文件保留数量   | `10`     |
+| `log.file.localtime` | `APP__LOG__FILE__LOCALTIME` | 使用本地时间轮转 | `true`   |
+| `log.file.compress`  | `APP__LOG__FILE__COMPRESS`  | 压缩旧文件       | `true`   |
 
-变量为空或无法转换时遵循 `osx.GetEnv` 语义返回零值而非默认值，例如 `LOGX_FILE_SIZE` 为空时单文件大小为零，由 lumberjack 回退到其自身的 100MB 默认值。
+配置项存在但为空或无法转换时返回目标类型零值，不使用默认值。例如 `APP__LOG__FILE__SIZE` 为空时单文件大小为零，由 lumberjack 回退到其自身的 100MB 默认值。
+
+`log.no_color` 未配置时根据标准输出是否为支持颜色的终端自动决定；`TERM=dumb` 或标准输出被重定向时默认禁用颜色。显式配置始终优先。
 
 ### 环境变量
 
@@ -282,7 +289,7 @@ uuid := seq.UUID()
 shortUUID := seq.UUIDShort()
 ```
 
-Snowflake 生成器的起始年份默认 `2020`，机器编号默认 `56565`，可分别通过 `SONYFLAKE_START_YEAR` 和 `SONYFLAKE_MACHINE_ID` 环境变量覆盖（机器编号取值范围为 `[0, 65535]`，起始年份须早于当前时间）。机器编号的唯一性范围为同一时间只运行一个生成器实例；非法取值会在包初始化时 panic。UUID 使用 v7 格式，并在包初始化时启用随机池。
+Snowflake 生成器读取 `sonyflake.start_year` 和 `sonyflake.machine_id`，默认值分别为 `2020` 和 `56565`；环境变量写法为 `APP__SONYFLAKE__START_YEAR` 和 `APP__SONYFLAKE__MACHINE_ID`（机器编号取值范围为 `[0, 65535]`，起始年份须早于当前时间）。机器编号的唯一性范围为同一时间只运行一个生成器实例；非法取值会在包初始化时 panic。UUID 使用 v7 格式，并在包初始化时启用随机池。
 
 ### 测试辅助
 

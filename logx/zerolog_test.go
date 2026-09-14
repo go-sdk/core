@@ -128,6 +128,13 @@ func TestNewLogger(t *testing.T) {
 	outputLogger.Info().Msg("可写")
 }
 
+func TestTerminalSupportsColor(t *testing.T) {
+	testx.True(t, terminalSupportsColor("xterm-256color", true, false))
+	testx.True(t, terminalSupportsColor("xterm-256color", false, true))
+	testx.False(t, terminalSupportsColor("xterm-256color", false, false))
+	testx.False(t, terminalSupportsColor("dumb", true, true))
+}
+
 func TestInitReconfiguresGlobalLogger(t *testing.T) {
 	firstFile := filepath.Join(t.TempDir(), "first.log")
 	secondFile := filepath.Join(t.TempDir(), "second.log")

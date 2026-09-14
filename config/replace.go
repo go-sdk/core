@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+
+	"github.com/go-sdk/core/errx"
 )
 
 var variablePattern = regexp.MustCompile(`\$\{([^{}]+)}`)
@@ -31,18 +33,18 @@ type variableResolver struct {
 func (r *variableResolver) resolveKey(key string) (any, error) {
 	switch r.state[key] {
 	case 1:
-		return nil, fmt.Errorf("cyclic reference detected at %q", key)
+		return nil, errx.Newf("cyclic reference detected at %q", key)
 	case 2:
 		return r.output[key], nil
 	}
 	value, ok := r.input[key]
 	if !ok {
-		return nil, fmt.Errorf("referenced key %q does not exist", key)
+		return nil, errx.Newf("referenced key %q does not exist", key)
 	}
 	r.state[key] = 1
 	resolved, err := r.resolveValue(value)
 	if err != nil {
-		return nil, fmt.Errorf("resolve %q: %w", key, err)
+		return nil, errx.Wrapf(err, "resolve %q", key)
 	}
 	r.output[key] = resolved
 	r.state[key] = 2
@@ -65,7 +67,7 @@ func (r *variableResolver) resolveValue(value any) (any, error) {
 				return match
 			}
 			if !isScalar(referenced) {
-				replaceErr = fmt.Errorf("referenced key %q is not a scalar value", reference)
+				replaceErr = errx.Newf("referenced key %q is not a scalar value", reference)
 				return match
 			}
 			return fmt.Sprint(referenced)
@@ -79,7 +81,7 @@ func (r *variableResolver) resolveValue(value any) (any, error) {
 		for index := range value {
 			item, err := r.resolveValue(value[index])
 			if err != nil {
-				return nil, fmt.Errorf("resolve array index %d: %w", index, err)
+				return nil, errx.Wrapf(err, "resolve array index %d", index)
 			}
 			resolved[index] = item
 		}
@@ -89,7 +91,7 @@ func (r *variableResolver) resolveValue(value any) (any, error) {
 		for key, item := range value {
 			itemValue, err := r.resolveValue(item)
 			if err != nil {
-				return nil, fmt.Errorf("resolve map key %q: %w", key, err)
+				return nil, errx.Wrapf(err, "resolve map key %q", key)
 			}
 			resolved[key] = itemValue
 		}

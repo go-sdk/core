@@ -1,14 +1,14 @@
 package config
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 
 	jsoncodec "github.com/go-sdk/core/codec/json"
 	yamlcodec "github.com/go-sdk/core/codec/yaml"
-	"github.com/go-sdk/core/logx"
+	"github.com/go-sdk/core/errx"
 )
 
 // Load 重新读取全部配置来源，并在校验成功后一次性发布新快照。
@@ -17,7 +17,7 @@ func (c *Config) Load() error {
 	defer c.loadMu.Unlock()
 
 	if c.fileWatch && !c.hasFile {
-		return fmt.Errorf("config: file watch requires WithFile")
+		return errx.New("config: file watch requires WithFile")
 	}
 	if err := c.load(); err != nil {
 		return err
@@ -35,13 +35,13 @@ func (c *Config) load() (err error) {
 		return c.optionErr
 	}
 	if c.hasFile {
-		logx.Info().Str("file", c.filename).Msg("loading config file")
+		slog.Info("loading config file", "file", c.filename)
 		defer func() {
 			if err != nil {
-				logx.Error().Err(err).Str("file", c.filename).Msg("config file load failed")
+				slog.Error("config file load failed", "file", c.filename, "error", err)
 				return
 			}
-			logx.Info().Str("file", c.filename).Msg("config file loaded")
+			slog.Info("config file loaded", "file", c.filename)
 		}()
 	}
 
@@ -53,18 +53,18 @@ func (c *Config) load() (err error) {
 			return err
 		}
 		if err = flattenMap("", fileData, flat); err != nil {
-			return fmt.Errorf("config: flatten file %q: %w", c.filename, err)
+			return errx.Wrapf(err, "config: flatten file %q", c.filename)
 		}
 	}
 
 	mergeEnv(flat)
 	resolved, err := resolveVariables(flat)
 	if err != nil {
-		return fmt.Errorf("config: resolve variables: %w", err)
+		return errx.Wrap(err, "config: resolve variables")
 	}
 	nested, err := unflattenMap(resolved)
 	if err != nil {
-		return fmt.Errorf("config: restore nested data: %w", err)
+		return errx.Wrap(err, "config: restore nested data")
 	}
 
 	c.dataMu.Lock()
@@ -77,7 +77,7 @@ func (c *Config) load() (err error) {
 func (c *Config) loadFile() (map[string]any, error) {
 	bs, err := os.ReadFile(c.filename)
 	if err != nil {
-		return nil, fmt.Errorf("config: read file %q: %w", c.filename, err)
+		return nil, errx.Wrapf(err, "config: read file %q", c.filename)
 	}
 	fileType, err := c.resolveFileType()
 	if err != nil {
@@ -91,7 +91,7 @@ func (c *Config) loadFile() (map[string]any, error) {
 		err = yamlcodec.Unmarshal(bs, &data)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("config: parse %s file %q: %w", fileType, c.filename, err)
+		return nil, errx.Wrapf(err, "config: parse %s file %q", fileType, c.filename)
 	}
 	return data, nil
 }
@@ -105,11 +105,11 @@ func (c *Config) resolveFileType() (string, error) {
 		case ".yaml", ".yml":
 			fileType = "yaml"
 		default:
-			return "", fmt.Errorf("config: unsupported file extension for %q", c.filename)
+			return "", errx.Newf("config: unsupported file extension for %q", c.filename)
 		}
 	}
 	if fileType != "json" && fileType != "yaml" {
-		return "", fmt.Errorf("config: unsupported file type %q", c.fileType)
+		return "", errx.Newf("config: unsupported file type %q", c.fileType)
 	}
 	return fileType, nil
 }
@@ -132,7 +132,7 @@ func mergeEnv(flat map[string]any) {
 func flattenMap(prefix string, input map[string]any, output map[string]any) error {
 	for key, value := range input {
 		if key == "" {
-			return fmt.Errorf("empty key is not supported")
+			return errx.New("empty key is not supported")
 		}
 		path := key
 		if prefix != "" {
@@ -170,7 +170,7 @@ func unflattenMap(flat map[string]any) (map[string]any, error) {
 		current := root
 		for index, part := range parts {
 			if part == "" {
-				return nil, fmt.Errorf("path %q contains an empty segment", path)
+				return nil, errx.Newf("path %q contains an empty segment", path)
 			}
 			if index == len(parts)-1 {
 				current[part] = cloneValue(value)
@@ -185,7 +185,7 @@ func unflattenMap(flat map[string]any) (map[string]any, error) {
 			}
 			child, ok := next.(map[string]any)
 			if !ok {
-				return nil, fmt.Errorf("path %q conflicts with %q", path, strings.Join(parts[:index+1], delimiter))
+				return nil, errx.Newf("path %q conflicts with %q", path, strings.Join(parts[:index+1], delimiter))
 			}
 			current = child
 		}

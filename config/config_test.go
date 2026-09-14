@@ -58,6 +58,8 @@ func TestGetAndMustGet(t *testing.T) {
 	value, ok := c.Get[string]("missing")
 	testx.False(t, ok)
 	testx.Empty(t, value)
+	testx.Equal(t, "default", c.MustGet("missing", "default"))
+	testx.Equal(t, "first", c.MustGet("missing", "first", "second"))
 	testx.Panics(t, func() { c.MustGet[string]("missing") })
 }
 
@@ -142,6 +144,7 @@ func TestSetDefault(t *testing.T) {
 	testx.True(t, ok)
 	testx.Equal(t, "example", name)
 	testx.Equal(t, "example", MustGet[string]("name"))
+	testx.Equal(t, 42, MustGet("missing", 42))
 	testx.Panics(t, func() { SetDefault(nil) })
 }
 

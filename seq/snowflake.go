@@ -6,14 +6,15 @@ import (
 
 	"github.com/sony/sonyflake/v2"
 
+	"github.com/go-sdk/core/config"
 	"github.com/go-sdk/core/osx"
 )
 
 var sf *sonyflake.Sonyflake
 
 func init() {
-	year := osx.GetEnv[int](2020, "SONYFLAKE_START_YEAR")
-	machineID := osx.GetEnv[int](56565, "SONYFLAKE_MACHINE_ID")
+	year := config.MustGet[int]("sonyflake.start_year", 2020)
+	machineID := config.MustGet[int]("sonyflake.machine_id", 56565)
 	var err error
 	sf, err = sonyflake.New(sonyflake.Settings{
 		StartTime: time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC),

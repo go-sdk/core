@@ -1,14 +1,14 @@
 package config
 
 import (
-	"fmt"
+	"log/slog"
 	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 
+	"github.com/go-sdk/core/errx"
 	"github.com/go-sdk/core/lifex"
-	"github.com/go-sdk/core/logx"
 )
 
 const watchDebounce = 100 * time.Millisecond
@@ -22,15 +22,15 @@ func (c *Config) ensureWatcher() error {
 
 	filename, err := filepath.Abs(c.filename)
 	if err != nil {
-		return fmt.Errorf("config: resolve watched file %q: %w", c.filename, err)
+		return errx.Wrapf(err, "config: resolve watched file %q", c.filename)
 	}
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
-		return fmt.Errorf("config: create file watcher: %w", err)
+		return errx.Wrap(err, "config: create file watcher")
 	}
 	if err = w.Add(filepath.Dir(filename)); err != nil {
 		_ = w.Close()
-		return fmt.Errorf("config: watch directory for %q: %w", filename, err)
+		return errx.Wrapf(err, "config: watch directory for %q", filename)
 	}
 
 	done := make(chan struct{})
@@ -75,7 +75,7 @@ func (c *Config) watchFile(w *fsnotify.Watcher, done chan struct{}, filename str
 			if !ok {
 				return
 			}
-			logx.Error().Err(err).Str("file", c.filename).Msg("config file watch failed")
+			slog.Error("config file watch failed", "file", c.filename, "error", err)
 		}
 	}
 }
@@ -84,7 +84,7 @@ func (c *Config) reloadWatchedFile() {
 	c.loadMu.Lock()
 	defer c.loadMu.Unlock()
 	if err := c.load(); err != nil {
-		logx.Error().Err(err).Str("file", c.filename).Msg("config file reload failed")
+		slog.Error("config file reload failed", "file", c.filename, "error", err)
 	}
 }
 
@@ -103,7 +103,7 @@ func (c *Config) closeWatcher() error {
 		<-done
 	}
 	if err != nil {
-		return fmt.Errorf("config: close file watcher: %w", err)
+		return errx.Wrap(err, "config: close file watcher")
 	}
 	return nil
 }

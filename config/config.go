@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -10,6 +9,7 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/cast"
 
+	"github.com/go-sdk/core/errx"
 	"github.com/go-sdk/core/osx"
 )
 
@@ -60,7 +60,7 @@ func WithFile(filename string, fileType ...string) Option {
 		c.filename = filename
 		c.hasFile = true
 		if len(fileType) > 1 {
-			c.optionErr = fmt.Errorf("config: WithFile accepts at most one file type")
+			c.optionErr = errx.New("config: WithFile accepts at most one file type")
 			return
 		}
 		if len(fileType) == 1 {
@@ -88,10 +88,13 @@ func (c *Config) Get[T cast.Basic](key string) (T, bool) {
 	return cast.To[T](value), true
 }
 
-// MustGet 返回指定路径转换后的基础类型值，路径不存在时触发 panic。
-func (c *Config) MustGet[T cast.Basic](key string) T {
+// MustGet 返回指定路径转换后的基础类型值；路径不存在时优先返回第一个默认值，否则触发 panic。
+func (c *Config) MustGet[T cast.Basic](key string, defaults ...T) T {
 	value, ok := c.Get[T](key)
 	if !ok {
+		if len(defaults) > 0 {
+			return defaults[0]
+		}
 		osx.Panicf("config: key %q does not exist", key)
 	}
 	return value
@@ -116,11 +119,11 @@ func (c *Config) Raw() map[string]any {
 // DecodeTo 使用 json tag 将完整配置解码到目标值，并解析 duration 与 RFC3339 时间。
 func (c *Config) DecodeTo(target any) error {
 	if target == nil {
-		return fmt.Errorf("config: decode target must be a non-nil pointer")
+		return errx.New("config: decode target must be a non-nil pointer")
 	}
 	rv := reflect.ValueOf(target)
 	if rv.Kind() != reflect.Pointer || rv.IsNil() {
-		return fmt.Errorf("config: decode target must be a non-nil pointer")
+		return errx.New("config: decode target must be a non-nil pointer")
 	}
 
 	c.dataMu.RLock()
@@ -137,10 +140,10 @@ func (c *Config) DecodeTo(target any) error {
 		),
 	})
 	if err != nil {
-		return fmt.Errorf("config: create decoder: %w", err)
+		return errx.Wrap(err, "config: create decoder")
 	}
 	if err = decoder.Decode(data); err != nil {
-		return fmt.Errorf("config: decode: %w", err)
+		return errx.Wrap(err, "config: decode")
 	}
 	return nil
 }

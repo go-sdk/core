@@ -1,13 +1,12 @@
 package lifex
 
 import (
+	"log/slog"
 	"os"
 	"os/signal"
 	"slices"
 	"sync"
 	"syscall"
-
-	"github.com/go-sdk/core/logx"
 )
 
 var (
@@ -53,7 +52,7 @@ func Init() error {
 }
 
 // Wait 阻塞等待 SIGINT/SIGTERM 信号或 Shutdown 触发退出，
-// 然后按注册逆序执行全部解构函数；解构函数自身的错误经 logx 记录，不影响其余解构执行。
+// 然后按注册逆序执行全部解构函数；解构函数自身的错误经默认 slog 记录，不影响其余解构执行。
 // 信号触发视为正常退出返回 nil，主动退出返回 Shutdown 携带的原因；
 // 解构期间再次收到退出信号时跳过剩余解构强制退出，避免解构卡死导致进程无法终止。
 func Wait() error {
@@ -63,7 +62,7 @@ func Wait() error {
 
 	select {
 	case sig := <-sigs:
-		logx.Info().Str("signal", sig.String()).Msg("shutdown signal received, running deinit functions")
+		slog.Info("shutdown signal received, running deinit functions", "signal", sig.String())
 		trigger(nil)
 	case <-stopped:
 	}
@@ -73,7 +72,7 @@ func Wait() error {
 	go func() {
 		select {
 		case sig := <-sigs:
-			logx.Warn().Str("signal", sig.String()).Msg("shutdown signal received again, forcing exit")
+			slog.Warn("shutdown signal received again, forcing exit", "signal", sig.String())
 			os.Exit(1)
 		case <-quit:
 		}
@@ -103,10 +102,10 @@ func runDeinits() {
 		mu.Unlock()
 		for _, fn := range slices.Backward(fns) {
 			if err := fn(); err != nil {
-				logx.Error().Err(err).Msg("deinit function failed")
+				slog.Error("deinit function failed", "error", err)
 			}
 		}
-		logx.Info().Msg("deinit functions completed")
+		slog.Info("deinit functions completed")
 		close(finished)
 	})
 	<-finished

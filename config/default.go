@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"github.com/spf13/cast"
 
 	jsoncodec "github.com/go-sdk/core/codec/json"
+	"github.com/go-sdk/core/errx"
 	"github.com/go-sdk/core/osx"
 )
 
@@ -48,9 +48,9 @@ func Get[T cast.Basic](key string) (T, bool) {
 	return defaultConfig.Load().Get[T](key)
 }
 
-// MustGet 返回默认配置实例中的基础类型值，路径不存在时触发 panic。
-func MustGet[T cast.Basic](key string) T {
-	return defaultConfig.Load().MustGet[T](key)
+// MustGet 返回默认配置实例中的基础类型值；路径不存在时优先返回第一个默认值，否则触发 panic。
+func MustGet[T cast.Basic](key string, defaults ...T) T {
+	return defaultConfig.Load().MustGet(key, defaults...)
 }
 
 func findDefaultFile() (string, bool, error) {
@@ -99,19 +99,19 @@ func testModuleConfigFile() (string, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("run go list -m -json: %w: %s", err, strings.TrimSpace(stderr.String()))
+		return "", errx.Wrapf(err, "run go list -m -json: %s", strings.TrimSpace(stderr.String()))
 	}
 	if message := strings.TrimSpace(stderr.String()); message != "" {
-		return "", fmt.Errorf("go list -m -json wrote to stderr: %s", message)
+		return "", errx.Newf("go list -m -json wrote to stderr: %s", message)
 	}
 	var module struct {
 		Dir string
 	}
 	if err := jsoncodec.Unmarshal(stdout.Bytes(), &module); err != nil {
-		return "", fmt.Errorf("decode go list -m -json output: %w", err)
+		return "", errx.Wrap(err, "decode go list -m -json output")
 	}
 	if module.Dir == "" {
-		return "", fmt.Errorf("go list -m -json returned an empty module directory")
+		return "", errx.New("go list -m -json returned an empty module directory")
 	}
 	filename := filepath.Join(module.Dir, "config.yaml")
 	exists, err := isRegularFile(filename)
@@ -127,10 +127,10 @@ func isRegularFile(filename string) (bool, error) {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
-		return false, fmt.Errorf("stat config file %q: %w", filename, err)
+		return false, errx.Wrapf(err, "stat config file %q", filename)
 	}
 	if !info.Mode().IsRegular() {
-		return false, fmt.Errorf("config path %q is not a regular file", filename)
+		return false, errx.Newf("config path %q is not a regular file", filename)
 	}
 	return true, nil
 }
