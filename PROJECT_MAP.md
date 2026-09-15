@@ -22,7 +22,6 @@ core/
 ├── restx/                           预配置的 resty HTTP 客户端
 ├── seq/                             Snowflake ID 和 UUID v7 生成
 ├── testx/                           测试断言和输出辅助
-├── empty.go                         根包占位文件，保证模块路径可被直接引用
 ├── AGENTS.md                        仓库协作与修改规范
 ├── PROJECT_MAP.md                   项目结构与调用关系
 ├── README.md                        使用说明与公共行为
