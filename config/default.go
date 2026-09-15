@@ -53,6 +53,21 @@ func MustGet[T cast.Basic](key string, defaults ...T) T {
 	return defaultConfig.Load().MustGet(key, defaults...)
 }
 
+// Exists 判断默认配置实例中是否存在指定路径。
+func Exists(key string) bool {
+	return defaultConfig.Load().Exists(key)
+}
+
+// Raw 返回默认配置实例嵌套数据的深拷贝。
+func Raw() map[string]any {
+	return defaultConfig.Load().Raw()
+}
+
+// DecodeTo 将默认配置实例的完整配置解码到目标值。
+func DecodeTo(target any) error {
+	return defaultConfig.Load().DecodeTo(target)
+}
+
 func findDefaultFile() (string, bool, error) {
 	// CONFIG_PATH 一经设置即直接采用且不回退，空值同样视为已设置。
 	if filename, ok := os.LookupEnv("CONFIG_PATH"); ok {

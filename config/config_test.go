@@ -145,6 +145,17 @@ func TestSetDefault(t *testing.T) {
 	testx.Equal(t, "example", name)
 	testx.Equal(t, "example", MustGet[string]("name"))
 	testx.Equal(t, 42, MustGet("missing", 42))
+	testx.True(t, Exists("name"))
+	testx.False(t, Exists("missing"))
+	raw := Raw()
+	testx.Equal(t, "example", raw["name"])
+	raw["name"] = "changed"
+	testx.Equal(t, "example", Raw()["name"])
+	var target struct {
+		Name string `json:"name"`
+	}
+	testx.NoError(t, DecodeTo(&target))
+	testx.Equal(t, "example", target.Name)
 	testx.Panics(t, func() { SetDefault(nil) })
 }
 

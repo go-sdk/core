@@ -85,8 +85,15 @@ if err := cfg.DecodeTo(&appConfig); err != nil {
 databaseType, ok := config.Get[string]("database.type")
 databasePort := config.MustGet[int]("database.port")
 databaseHost := config.MustGet("database.host", "localhost")
+hasDatabase := config.Exists("database")
+raw := config.Raw()
 
 config.SetDefault(cfg)
+
+var appConfig AppConfig
+if err := config.DecodeTo(&appConfig); err != nil {
+	return err
+}
 ```
 
 ### 命令行
