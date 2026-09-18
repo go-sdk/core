@@ -172,15 +172,17 @@ target, ok := errx.AsType[*MyError](joined)
 ### 生命周期
 
 ```go
-lifex.OnInit(func() error {
+initialize := func() error {
 	// 建立资源连接
 	return nil
-})
+}
 
-lifex.OnDeinit(func() error {
+deinitialize := func() {
 	// 释放资源
-	return nil
-})
+}
+
+lifex.OnInit(initialize)
+lifex.OnDeinit(deinitialize)
 
 if err := lifex.Init(); err != nil {
 	logx.Error().Err(err).Msg("初始化失败")
@@ -192,7 +194,7 @@ if err := lifex.Wait(); err != nil {
 }
 ```
 
-`Init` 按注册顺序执行初始化函数，任一失败立即停止后续执行并返回该错误。`Wait` 阻塞等待 SIGINT/SIGTERM 信号或 `Shutdown` 触发退出，然后按注册逆序执行解构函数：信号触发视为正常退出返回 nil，主动退出返回 `Shutdown` 携带的原因；`Shutdown` 幂等，多次调用只触发一次退出。解构函数自身的错误经 `logx` 记录，不影响其余解构执行和 `Wait` 的返回值；解构期间再次收到退出信号时跳过剩余解构强制退出，避免解构卡死导致进程无法终止。
+`OnInit` 和 `OnDeinit` 均接受 `func()`、`func() error`、`func(context.Context)` 与 `func(context.Context) error`，普通函数、方法值和函数字面量都可以直接注册；带上下文参数时传入 `context.Background()`。`Init` 按注册顺序执行初始化函数，任一失败立即停止后续执行并返回该错误。`Wait` 阻塞等待 SIGINT/SIGTERM 信号或 `Shutdown` 触发退出，然后按注册逆序执行解构函数：信号触发视为正常退出返回 nil，主动退出返回 `Shutdown` 携带的原因；`Shutdown` 幂等，多次调用只触发一次退出。解构函数自身的错误经默认 `slog` 记录，不影响其余解构执行和 `Wait` 的返回值；解构期间再次收到退出信号时跳过剩余解构强制退出，避免解构卡死导致进程无法终止。
 
 ### 全局日志
 
@@ -200,12 +202,11 @@ if err := lifex.Wait(); err != nil {
 
 ```go
 logx.Init("logs/app.log")
-defer logx.Close()
 
 logx.Info().Str("service", "example").Msg("服务已启动")
 ```
 
-重新调用 `Init` 会先刷新并关闭此前创建的文件 Writer。日志资源按进程统一管理，不使用独立 Logger 生命周期。控制台输出经 go-colorable 包装，在 Windows 终端下也能正常显示颜色。
+重新调用 `Init` 会先刷新并关闭此前创建的文件 Writer。`logx` 会向 `lifex` 注册关闭函数，使用 `lifex.Wait` 时在进程解构阶段自动刷新并关闭文件 Writer；未使用 `lifex` 的程序仍应在退出前调用 `logx.Close()`。`Close` 后全局日志保留控制台输出，供生命周期完成日志和后续诊断使用。日志资源按进程统一管理，不使用独立 Logger 生命周期。控制台输出经 go-colorable 包装，在 Windows 终端下也能正常显示颜色。
 
 `SetGlobalKV` 维护进程级全局键值，之后所有日志事件都会附带该键值，适合注入 `service`、`version`、`instance`、`environment` 等进程级标识：
 
@@ -231,7 +232,7 @@ ctx := logger.WithContext(context.Background())
 logx.Ctx(ctx).Info().Msg("处理请求")
 ```
 
-`logx` 在包初始化时读取默认 `config` 实例，默认日志参数可以写入配置文件，也可以通过 `APP__` 环境变量覆盖：
+默认配置加载前会先安装 zerolog 控制台 Handler，因此 `config` 使用的 `slog`、zerolog 和标准库 `log` 从启动阶段起采用相同的时间、级别和字段格式。`logx` 随后读取默认 `config` 实例，默认日志参数可以写入配置文件，也可以通过 `APP__` 环境变量覆盖：
 
 | 配置键               | 环境变量                    | 含义             | 默认值   |
 |----------------------|-----------------------------|------------------|----------|

@@ -12,12 +12,15 @@ import (
 
 	jsoncodec "github.com/go-sdk/core/codec/json"
 	"github.com/go-sdk/core/errx"
+	"github.com/go-sdk/core/internal/logging"
 	"github.com/go-sdk/core/osx"
 )
 
 var defaultConfig atomic.Pointer[Config]
 
 func init() {
+	logging.Bootstrap()
+
 	filename, found, err := findDefaultFile()
 	if err != nil {
 		osx.Panicf("config: find default file: %v", err)

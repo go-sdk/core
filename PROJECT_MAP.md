@@ -16,6 +16,7 @@ core/
 ├── config/                          YAML/JSON、环境变量与文件监听配置
 ├── conv/                            string 与 []byte 零拷贝互转
 ├── errx/                            错误创建、包装、解包和判断
+├── internal/logging/                启动期与运行期共享的日志基础实现
 ├── lifex/                           全局信号、初始化和解构管理
 ├── logx/                            进程级全局日志及 zerolog 配置
 ├── osx/                             调试状态、环境变量和构建版本信息
@@ -44,7 +45,7 @@ core/
 - `MustGet` 在路径不存在且传入默认值时返回第一个默认值；未传默认值时触发 panic。
 - `WithFile` 指定 YAML 或 JSON 文件，并可通过第二个可选参数显式指定 `yaml` 或 `json`；`WithFileWatch` 默认关闭，启用后由 `lifex` 统一关闭文件监听器。
 - `Load` 先读取文件，再将 `APP__` 开头的环境变量转换为小写路径并覆盖文件值，最后解析 `${key}` 引用；引用使用与 `Get` 相同的路径，并检测缺失引用和循环引用。
-- 配置加载和文件监听日志使用标准 `log/slog`，保证默认配置先于 `logx` 初始化且不形成循环依赖。
+- 配置加载和文件监听日志使用标准 `log/slog`；默认配置加载前由 `internal/logging` 安装 zerolog 控制台 Handler，使启动期与运行期格式一致且不依赖公开的 `logx` 包。
 - `DecodeTo` 使用 `json` tag 和弱类型转换将嵌套数据解码到目标值，并将字符串按 Go duration 格式解析为 `time.Duration`、按 RFC3339 格式解析为 `time.Time`。
 - 包初始化时解析默认配置文件，任何失败直接 panic：`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置时按测试模块根目录 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序选择第一个存在的文件，全部不存在时仅加载环境变量。
 - `SetDefault` 替换包级 `Get`、`MustGet`、`Exists`、`Raw` 和 `DecodeTo` 使用的默认实例。
@@ -75,7 +76,7 @@ core/
 
 ### `lifex`
 
-- 管理进程级生命周期：`OnInit` 和 `OnDeinit` 注册初始化和解构函数，`Init` 按注册顺序执行初始化，`Wait` 阻塞等待退出后按注册逆序执行解构。
+- 管理进程级生命周期：`OnInit` 和 `OnDeinit` 接受 `func()`、`func() error`、`func(context.Context)` 与 `func(context.Context) error`，带上下文参数时传入 `context.Background()`；`Init` 按注册顺序执行初始化，`Wait` 阻塞等待退出后按注册逆序执行解构。
 - 退出由 SIGINT/SIGTERM 信号或 `Shutdown` 触发；信号触发视为正常退出，主动退出返回 `Shutdown` 携带的原因，生命周期日志使用标准 `log/slog`。
 - `Shutdown` 幂等，多次调用只触发一次退出；解构期间的第二个退出信号跳过剩余解构强制退出。
 - 解构函数自身的错误经默认 `log/slog` 记录，不影响其余解构执行和 `Wait` 的返回值。
@@ -86,6 +87,7 @@ core/
 - 控制台输出经 go-colorable 包装标准输出，Windows 终端下颜色转义可正常显示。
 - 包初始化时从 `config` 读取 `log.*` 配置并建立默认全局日志，同时接管 zerolog、`log/slog` 和标准库 `log`。
 - 应用读取配置后可以再次调用 `Init`，将日志同时写入标准输出和滚动文件。
+- 包初始化时向 `lifex` 注册关闭函数；使用 `lifex.Wait` 的程序会在其他解构函数完成后自动刷新并关闭文件 Writer，关闭后全局日志保留控制台输出。
 - 文件路径、控制台颜色和滚动参数分别读取 `log.file.*` 与 `log.no_color`，可由配置文件或 `APP__LOG__*` 环境变量提供；`log.no_color` 未配置时根据标准输出的终端颜色能力自动决定。
 - 文件日志使用异步 Writer，所有文件 Writer 由进程统一通过 `Init` 和 `Close` 管理。
 - `SetGlobalKV`、`DeleteGlobalKV` 和 `ClearGlobalKV` 维护进程级全局键值，仅用于 service、version 等进程级标识，并通过 Hook 附加到之后所有日志事件；键值对所有 `New` 创建的 Logger 生效。
@@ -122,8 +124,11 @@ core/
 
 ```text
 restx ───> logx ─┬─> config
+                 ├─> internal/logging
+                 ├─> lifex
                  └─> osx
-config -> codec/json、codec/yaml、errx、lifex、osx
+config -> codec/json、codec/yaml、errx、internal/logging、lifex、osx
+internal/logging -> zerolog、log/slog、osx
 codec/json -> conv、osx
 codec/yaml -> conv、osx
 cmdx  ───> cobra、errx、osx
@@ -151,7 +156,8 @@ testx ───> testify/require、kr/pretty
 - `conv` 测试验证空输入零值语义和常规互转结果。
 - `errx` 测试验证创建、包装、根因、类型匹配、多错误合并和 `Nil` 哨兵行为。
 - `lifex` 测试验证初始化顺序与失败中断、解构逆序与错误隔离、`Shutdown` 幂等与并发 `Wait`，并通过子进程重入验证信号触发退出和第二次信号强制退出，不访问外部资源。
-- `logx` 测试验证全局日志包装、两阶段初始化、文件刷新、标准日志接管以及全局键值的附加、覆盖、删除、清空、同名冲突行为、序列化重入和并发安全。
+- `internal/logging` 测试验证终端颜色判断和启动期 `slog` 的 zerolog 控制台格式。
+- `logx` 测试验证全局日志包装、两阶段初始化、生命周期自动关闭、文件刷新、标准日志接管以及全局键值的附加、覆盖、删除、清空、同名冲突行为、序列化重入和并发安全。
 - `osx` 测试验证调试模式、环境变量优先级、主机与路径信息、扩展名替换、构建版本序列化以及 Panic/Panicf 的堆栈输出与 panic 透传。
 - `restx` 使用本地 `httptest` 服务验证客户端配置、调试模式、请求和 Cookie Jar，不访问外部接口。
 - `seq` 同时验证格式、默认机器编号、唯一性和进程内并发安全。

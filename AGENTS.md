@@ -21,9 +21,9 @@
 
 ## 设计约束
 
-- `config` 在 `logx` 之前完成包级默认配置初始化，内部仅使用标准 `log/slog`，不得依赖 `logx`。
+- `config` 在 `logx` 之前完成包级默认配置初始化，业务日志仅使用标准 `log/slog`；启动时通过 `internal/logging` 安装统一的 zerolog 控制台格式，不得依赖公开的 `logx` 包。
 - `logx` 负责进程级全局日志，允许在包初始化时建立默认配置，并在应用读取配置后再次调用 `Init`；包初始化的默认日志参数读取 `config` 的 `log.*` 配置。
-- 日志按进程统一管理，不维护独立 Logger 的资源生命周期。
+- 日志按进程统一管理，不维护独立 Logger 的资源生命周期；文件 Writer 由 `lifex` 在进程解构时自动关闭。
 - `seq` 的 Snowflake 生成器起始年份和机器编号读取 `config` 的 `sonyflake.start_year`、`sonyflake.machine_id`（默认 2020 和 56565），初始化失败直接 panic；机器编号约束为同一时间仅运行一个生成器实例。
 - `seq` 在包初始化时启用 UUID 随机池，这是本类库的既定性能策略。
 - `osx.GetEnv` 以第一个已设置的环境变量为准；即使为空或转换失败也返回转换结果，仅在全部未设置时返回默认值。

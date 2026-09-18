@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 	zerologlog "github.com/rs/zerolog/log"
 
+	"github.com/go-sdk/core/lifex"
 	"github.com/go-sdk/core/testx"
 )
 
@@ -128,11 +129,19 @@ func TestNewLogger(t *testing.T) {
 	outputLogger.Info().Msg("可写")
 }
 
-func TestTerminalSupportsColor(t *testing.T) {
-	testx.True(t, terminalSupportsColor("xterm-256color", true, false))
-	testx.True(t, terminalSupportsColor("xterm-256color", false, true))
-	testx.False(t, terminalSupportsColor("xterm-256color", false, false))
-	testx.False(t, terminalSupportsColor("dumb", true, true))
+func TestLifecycleClosesFileWriter(t *testing.T) {
+	filename := filepath.Join(t.TempDir(), "lifecycle.log")
+	Init(filename)
+	Info().Msg("关闭前")
+
+	lifex.Shutdown(nil)
+	testx.NoError(t, lifex.Wait())
+	Info().Msg("关闭后")
+
+	content, err := os.ReadFile(filename)
+	testx.NoError(t, err)
+	testx.Contains(t, string(content), "关闭前")
+	testx.NotContains(t, string(content), "关闭后")
 }
 
 func TestInitReconfiguresGlobalLogger(t *testing.T) {

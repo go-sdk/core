@@ -1,6 +1,7 @@
 package lifex
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -22,18 +23,45 @@ var (
 	finished   = make(chan struct{})
 )
 
-// OnInit 注册初始化函数，由 Init 按注册顺序执行。
-func OnInit(fn func() error) {
-	mu.Lock()
-	defer mu.Unlock()
-	inits = append(inits, fn)
+type lifecycleFunc interface {
+	func() | func() error | func(context.Context) | func(context.Context) error
 }
 
-// OnDeinit 注册解构函数，由 Wait 在退出时按注册逆序执行。
-func OnDeinit(fn func() error) {
+// OnInit 注册初始化函数，由 Init 按注册顺序执行；带 context.Context 参数时传入 context.Background()。
+func OnInit[F lifecycleFunc](fn F) {
 	mu.Lock()
 	defer mu.Unlock()
-	deinits = append(deinits, fn)
+	inits = append(inits, wrapLifecycleFunc(fn))
+}
+
+// OnDeinit 注册解构函数，由 Wait 按注册逆序执行；带 context.Context 参数时传入 context.Background()。
+func OnDeinit[F lifecycleFunc](fn F) {
+	mu.Lock()
+	defer mu.Unlock()
+	deinits = append(deinits, wrapLifecycleFunc(fn))
+}
+
+func wrapLifecycleFunc[F lifecycleFunc](fn F) func() error {
+	switch fn := any(fn).(type) {
+	case func():
+		return func() error {
+			fn()
+			return nil
+		}
+	case func() error:
+		return fn
+	case func(context.Context):
+		return func() error {
+			fn(context.Background())
+			return nil
+		}
+	case func(context.Context) error:
+		return func() error {
+			return fn(context.Background())
+		}
+	default:
+		panic("lifex: unsupported lifecycle function")
+	}
 }
 
 // Init 按注册顺序执行全部已注册的初始化函数并清空注册表，

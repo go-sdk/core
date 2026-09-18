@@ -1,6 +1,7 @@
 package lifex
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -28,12 +29,60 @@ func reset() {
 	finished = make(chan struct{})
 }
 
+func initializeWithoutError() {}
+
+func initializeWithError() error { return nil }
+
+func initializeWithContext(ctx context.Context) {
+	if ctx == nil {
+		panic("context must not be nil")
+	}
+}
+
+func initializeWithContextError(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("context must not be nil")
+	}
+	return nil
+}
+
+func TestOnInitAcceptsFunctionSignatures(t *testing.T) {
+	reset()
+
+	OnInit(initializeWithoutError)
+	OnInit(initializeWithError)
+	OnInit(initializeWithContext)
+	OnInit(initializeWithContextError)
+
+	testx.NoError(t, Init())
+}
+
+func TestLifecycleContextUsesBackground(t *testing.T) {
+	reset()
+
+	var initContext context.Context
+	var deinitContext context.Context
+	OnInit(func(ctx context.Context) { initContext = ctx })
+	OnDeinit(func(ctx context.Context) error {
+		deinitContext = ctx
+		return nil
+	})
+
+	testx.NoError(t, Init())
+	Shutdown(nil)
+	testx.NoError(t, Wait())
+	testx.Equal(t, context.Background(), initContext)
+	testx.Equal(t, context.Background(), deinitContext)
+}
+
 func TestInitOrder(t *testing.T) {
 	reset()
 
 	var order []string
-	OnInit(func() error { order = append(order, "a"); return nil })
-	OnInit(func() error { order = append(order, "b"); return nil })
+	initialize := func() { order = append(order, "a") }
+	initializeWithError := func() error { order = append(order, "b"); return nil }
+	OnInit(initialize)
+	OnInit(initializeWithError)
 
 	testx.NoError(t, Init())
 	testx.Equal(t, []string{"a", "b"}, order)
@@ -44,9 +93,9 @@ func TestInitStopOnError(t *testing.T) {
 
 	failure := errors.New("初始化失败")
 	var order []string
-	OnInit(func() error { order = append(order, "a"); return nil })
+	OnInit(func() { order = append(order, "a") })
 	OnInit(func() error { order = append(order, "b"); return failure })
-	OnInit(func() error { order = append(order, "c"); return nil })
+	OnInit(func() { order = append(order, "c") })
 
 	testx.ErrorIs(t, Init(), failure)
 	testx.Equal(t, []string{"a", "b"}, order)
@@ -56,9 +105,9 @@ func TestWaitDeinitReverseOrder(t *testing.T) {
 	reset()
 
 	var order []string
-	OnDeinit(func() error { order = append(order, "a"); return nil })
+	OnDeinit(func(context.Context) { order = append(order, "a") })
 	OnDeinit(func() error { order = append(order, "b"); return errors.New("解构失败") })
-	OnDeinit(func() error { order = append(order, "c"); return nil })
+	OnDeinit(func(context.Context) error { order = append(order, "c"); return nil })
 
 	Shutdown(nil)
 	testx.NoError(t, Wait())
