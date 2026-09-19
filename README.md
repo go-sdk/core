@@ -123,9 +123,12 @@ bs, err := json.Marshal[[]byte](data)
 var out Data
 err = json.Unmarshal(s, &out)
 value := json.MustUnmarshal[Data](bs)
+
+err = json.MarshalWrite(w, data, json.Deterministic(true))
+err = json.UnmarshalRead(r, &out, json.RejectUnknownMembers(true))
 ```
 
-`Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体，内部经 `conv` 零拷贝互转；`Must` 前缀版本在出错时直接 panic。
+`Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体，内部经 `conv` 零拷贝互转；`Must` 前缀版本在出错时直接 panic。`MarshalWrite` 和 `UnmarshalRead` 直接面向 `io.Writer` 和 `io.Reader` 编解码；`StringifyNumbers`、`Deterministic` 等选项继承自 `encoding/json/v2`，其中 `StringifyNumbers` 和 `MatchCaseInsensitiveNames` 对序列化和反序列化都生效，`RejectUnknownMembers` 仅对反序列化生效，其余仅对序列化生效。
 
 ### YAML 编解码
 
@@ -136,9 +139,13 @@ bs, err := yaml.Marshal[[]byte](data)
 var out Data
 err = yaml.Unmarshal(s, &out)
 value := yaml.MustUnmarshal[Data](bs)
+
+enc := yaml.NewEncoder(w) // 使用后必须 Close 才能刷出剩余数据
+err = enc.Encode(data)
+err = enc.Close()
 ```
 
-`codec/yaml` 的方法与 `codec/json` 一一对应，同样通过泛型参数支持 `string` 与 `[]byte` 两种载体并复用 `conv` 零拷贝互转；yaml/v3 没有编解码选项，因此不接受额外参数。上游对 `chan`、`func` 等无法表示的类型会直接 panic 而非返回错误。
+`codec/yaml` 的方法与 `codec/json` 一一对应，同样通过泛型参数支持 `string` 与 `[]byte` 两种载体并复用 `conv` 零拷贝互转；yaml/v3 没有编解码选项，因此不接受额外参数。`NewEncoder` 和 `NewDecoder` 继承自 yaml/v3，可按文档流顺序读写多个 YAML 文档。上游对 `chan`、`func` 等无法表示的类型会直接 panic 而非返回错误。
 
 ### 零拷贝转换
 

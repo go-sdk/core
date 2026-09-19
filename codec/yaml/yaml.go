@@ -8,6 +8,13 @@ import (
 	"github.com/go-sdk/core/osx"
 )
 
+// NewEncoder 和 NewDecoder 是 go.yaml.in/yaml/v3 对应函数的别名，用于面向 io.Writer
+// 和 io.Reader 的流式多文档编解码；Encoder 使用后必须调用 Close，否则剩余数据不会写入 Writer。
+var (
+	NewEncoder = yaml.NewEncoder
+	NewDecoder = yaml.NewDecoder
+)
+
 func Marshal[T codec.Data](in any) (T, error) {
 	bs, err := yaml.Marshal(in)
 	if err != nil {

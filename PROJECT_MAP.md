@@ -53,12 +53,15 @@ core/
 ### `codec/json`
 
 - 基于 `encoding/json/v2`，`Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体。
+- `MarshalWrite` 和 `UnmarshalRead` 是上游对应函数的别名，直接面向 `io.Writer` 和 `io.Reader` 编解码。
+- `StringifyNumbers`、`Deterministic` 等选项同为上游选项构造函数的别名；`StringifyNumbers` 和 `MatchCaseInsensitiveNames` 对序列化和反序列化都生效，`RejectUnknownMembers` 仅对反序列化生效，其余选项仅对序列化生效。
 - 载体转换经 `conv` 零拷贝完成，`[]byte` 路径直接复用原切片。
 - `Must` 前缀版本在出错时经 `osx.Panic` 直接 panic。
 
 ### `codec/yaml`
 
 - 基于 `go.yaml.in/yaml/v3`，方法与 `codec/json` 对应，同样通过泛型参数支持 `string` 与 `[]byte` 两种载体；yaml/v3 没有编解码选项，因此不接受额外参数。
+- `NewEncoder` 和 `NewDecoder` 是上游对应函数的别名，用于流式多文档编解码；`Encoder` 使用后必须调用 `Close`，否则剩余数据不会写入 Writer。
 - 载体转换经 `conv` 零拷贝完成，`[]byte` 路径直接复用原切片。
 - `Must` 前缀版本在出错时经 `osx.Panic` 直接 panic。
 - 上游对 `chan`、`func` 等无法表示的类型直接 panic 而非返回错误。
