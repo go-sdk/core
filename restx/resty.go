@@ -13,8 +13,23 @@ import (
 	"github.com/go-sdk/core/osx"
 )
 
+// Client 是 resty.Client 的类型别名。
+type Client = resty.Client
+
 // Request 是 resty.Request 的类型别名。
 type Request = resty.Request
+
+// Response 是 resty.Response 的类型别名。
+type Response = resty.Response
+
+var (
+	// ErrAutoRedirectDisabled 是 resty 的哨兵错误，禁用重定向（NoRedirectPolicy）后收到重定向响应时返回。
+	ErrAutoRedirectDisabled = resty.ErrAutoRedirectDisabled
+	// ErrRateLimitExceeded 是 resty 的哨兵错误，通过 SetRateLimiter 设置的限流器拒绝请求时返回。
+	ErrRateLimitExceeded = resty.ErrRateLimitExceeded
+	// ErrResponseBodyTooLarge 是 resty 的哨兵错误，响应体超过 SetResponseBodyLimit 设置的上限时返回。
+	ErrResponseBodyTooLarge = resty.ErrResponseBodyTooLarge
+)
 
 // New 创建带有统一默认配置的 resty 客户端。
 // 客户端支持环境代理、HTTP/2、连接池和 Cookie Jar，请求总超时为五分钟。
