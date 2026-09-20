@@ -10,7 +10,6 @@ import (
 
 	"github.com/spf13/cast"
 
-	jsoncodec "github.com/go-sdk/core/codec/json"
 	"github.com/go-sdk/core/errx"
 	"github.com/go-sdk/core/internal/logging"
 	"github.com/go-sdk/core/osx"
@@ -113,25 +112,21 @@ func isTestProcess() bool {
 func testModuleConfigFile() (string, error) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command("go", "list", "-m", "-json")
+	cmd := exec.Command("go", "env", "GOMOD")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", errx.Wrapf(err, "run go list -m -json: %s", strings.TrimSpace(stderr.String()))
+		return "", errx.Wrapf(err, "run go env GOMOD: %s", strings.TrimSpace(stderr.String()))
 	}
 	if message := strings.TrimSpace(stderr.String()); message != "" {
-		return "", errx.Newf("go list -m -json wrote to stderr: %s", message)
+		return "", errx.Newf("go env GOMOD wrote to stderr: %s", message)
 	}
-	var module struct {
-		Dir string
+	// 不在任何模块内时输出 os.DevNull，Unix 为 /dev/null，Windows 为 NUL。
+	gomod := strings.TrimSpace(stdout.String())
+	if gomod == "" || gomod == os.DevNull {
+		return "", nil
 	}
-	if err := jsoncodec.Unmarshal(stdout.Bytes(), &module); err != nil {
-		return "", errx.Wrap(err, "decode go list -m -json output")
-	}
-	if module.Dir == "" {
-		return "", errx.New("go list -m -json returned an empty module directory")
-	}
-	filename := filepath.Join(module.Dir, "config.yaml")
+	filename := filepath.Join(filepath.Dir(gomod), "config.yaml")
 	exists, err := isRegularFile(filename)
 	if err != nil || !exists {
 		return "", err

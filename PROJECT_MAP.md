@@ -47,7 +47,7 @@ core/
 - `Load` 先读取文件，再将 `APP__` 开头的环境变量转换为小写路径并覆盖文件值，最后解析 `${key}` 引用；引用使用与 `Get` 相同的路径，并检测缺失引用和循环引用。
 - 配置加载和文件监听日志使用标准 `log/slog`；默认配置加载前由 `internal/logging` 安装 zerolog 控制台 Handler，使启动期与运行期格式一致且不依赖公开的 `logx` 包。
 - `DecodeTo` 使用 `json` tag 和弱类型转换将嵌套数据解码到目标值，并将字符串按 Go duration 格式解析为 `time.Duration`、按 RFC3339 格式解析为 `time.Time`。
-- 包初始化时解析默认配置文件，任何失败直接 panic：`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置时按测试模块根目录 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序选择第一个存在的文件，全部不存在时仅加载环境变量。
+- 包初始化时解析默认配置文件，任何失败直接 panic：`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置时按测试进程所在模块（`go.work` 下为当前目录所属模块）根目录的 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序选择第一个存在的文件，全部不存在时仅加载环境变量。
 - `SetDefault` 替换包级 `Get`、`MustGet`、`Exists`、`Raw` 和 `DecodeTo` 使用的默认实例。
 
 ### `codec/json`

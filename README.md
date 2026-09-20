@@ -79,7 +79,7 @@ if err := cfg.DecodeTo(&appConfig); err != nil {
 }
 ```
 
-包级默认实例在初始化时解析配置文件，任何失败都会直接 panic。`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置 `CONFIG_PATH` 时，按测试模块根目录 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序读取第一个存在的文件，全部不存在时仅加载环境变量。默认实例可通过 `SetDefault` 替换：
+包级默认实例在初始化时解析配置文件，任何失败都会直接 panic。`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置 `CONFIG_PATH` 时，按测试进程所在模块（`go.work` 下为当前目录所属模块）根目录的 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序读取第一个存在的文件，全部不存在时仅加载环境变量。默认实例可通过 `SetDefault` 替换：
 
 ```go
 databaseType, ok := config.Get[string]("database.type")
