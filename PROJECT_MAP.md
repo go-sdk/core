@@ -87,11 +87,11 @@ core/
 ### `logx`
 
 - 基于 `github.com/rs/zerolog`。
-- 控制台输出经 go-colorable 包装标准输出，Windows 终端下颜色转义可正常显示。
+- 控制台输出经 go-colorable 包装，默认写入标准输出；`APP__LOG__CONSOLE` 忽略大小写等于 `stderr` 时写入标准错误，Windows 终端下颜色转义可正常显示。
 - 包初始化时从 `config` 读取 `log.*` 配置并建立默认全局日志，同时接管 zerolog、`log/slog` 和标准库 `log`。
-- 应用读取配置后可以再次调用 `Init`，将日志同时写入标准输出和滚动文件。
+- 应用读取配置后可以再次调用 `Init`，将日志同时写入选定的控制台输出和滚动文件。
 - 包初始化时向 `lifex` 注册关闭函数；使用 `lifex.Wait` 的程序会在其他解构函数完成后自动刷新并关闭文件 Writer，关闭后全局日志保留控制台输出。
-- 文件路径、控制台颜色和滚动参数分别读取 `log.file.*` 与 `log.no_color`，可由配置文件或 `APP__LOG__*` 环境变量提供；`log.no_color` 未配置时根据标准输出的终端颜色能力自动决定。
+- 文件路径、控制台颜色和滚动参数分别读取 `log.file.*` 与 `log.no_color`，可由配置文件或 `APP__LOG__*` 环境变量提供；`log.no_color` 未配置时根据实际控制台输出流的终端颜色能力自动决定。
 - 文件日志使用异步 Writer，所有文件 Writer 由进程统一通过 `Init` 和 `Close` 管理。
 - `SetGlobalKV`、`DeleteGlobalKV` 和 `ClearGlobalKV` 维护进程级全局键值，仅用于 service、version 等进程级标识，并通过 Hook 附加到之后所有日志事件；键值对所有 `New` 创建的 Logger 生效。
 - 全局键值只在写入时加锁，日志输出通过不可变快照无锁读取，序列化阶段不持有任何锁；全局键与事件字段同名会产生重复 JSON key，调用方应保证不冲突。

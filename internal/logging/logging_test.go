@@ -3,6 +3,7 @@ package logging
 import (
 	"bytes"
 	"log/slog"
+	"os"
 	"strings"
 	"testing"
 
@@ -14,6 +15,25 @@ func TestTerminalSupportsColor(t *testing.T) {
 	testx.True(t, TerminalSupportsColor("xterm-256color", false, true))
 	testx.False(t, TerminalSupportsColor("xterm-256color", false, false))
 	testx.False(t, TerminalSupportsColor("dumb", true, true))
+}
+
+func TestConsoleFile(t *testing.T) {
+	tests := []struct {
+		value string
+		want  *os.File
+	}{
+		{value: "", want: os.Stdout},
+		{value: "stdout", want: os.Stdout},
+		{value: "other", want: os.Stdout},
+		{value: "stderr", want: os.Stderr},
+		{value: "STDERR", want: os.Stderr},
+	}
+	for _, test := range tests {
+		t.Run(test.value, func(t *testing.T) {
+			t.Setenv(consoleEnv, test.value)
+			testx.Same(t, test.want, consoleFile())
+		})
+	}
 }
 
 func TestSlogUsesZerologConsoleFormat(t *testing.T) {

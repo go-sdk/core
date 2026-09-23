@@ -22,11 +22,13 @@ import (
 
 const TimeFieldFormat = "2006-01-02T15:04:05.000Z07:00"
 
+const consoleEnv = "APP__LOG__CONSOLE"
+
 var configureOnce sync.Once
 
 // Bootstrap 在配置加载前安装控制台日志，使启动阶段与运行阶段使用相同格式。
 func Bootstrap() {
-	logger := NewConsoleLogger(colorable.NewColorableStdout(), !StdoutSupportsColor())
+	logger := NewConsoleLogger(ConsoleOutput(), !ConsoleSupportsColor())
 	Install(&logger)
 }
 
@@ -74,6 +76,14 @@ func NewConsoleWriter(out io.Writer, noColor bool) zerolog.ConsoleWriter {
 	})
 }
 
+// ConsoleOutput 根据 APP__LOG__CONSOLE 选择控制台输出，只有 stderr（忽略大小写）写入标准错误。
+func ConsoleOutput() io.Writer {
+	if consoleFile() == os.Stderr {
+		return colorable.NewColorableStderr()
+	}
+	return colorable.NewColorableStdout()
+}
+
 // Install 让 zerolog、slog 和标准库 log 共享同一个全局 Logger。
 func Install(logger *zerolog.Logger) {
 	zerologlog.Logger = *logger
@@ -94,7 +104,23 @@ func newSlogHandler(logger *zerolog.Logger) slog.Handler {
 
 // StdoutSupportsColor 判断标准输出是否支持终端颜色。
 func StdoutSupportsColor() bool {
-	fd := os.Stdout.Fd()
+	return fileSupportsColor(os.Stdout)
+}
+
+// ConsoleSupportsColor 判断当前控制台输出是否支持终端颜色。
+func ConsoleSupportsColor() bool {
+	return fileSupportsColor(consoleFile())
+}
+
+func consoleFile() *os.File {
+	if strings.ToLower(os.Getenv(consoleEnv)) == "stderr" {
+		return os.Stderr
+	}
+	return os.Stdout
+}
+
+func fileSupportsColor(file *os.File) bool {
+	fd := file.Fd()
 	return TerminalSupportsColor(os.Getenv("TERM"), isatty.IsTerminal(fd), isatty.IsCygwinTerminal(fd))
 }
 

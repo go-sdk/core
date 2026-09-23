@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattn/go-colorable"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -24,7 +23,7 @@ func init() {
 }
 
 // Init 初始化或重新配置全局日志，并同步设置 zerolog 包级日志、slog 默认日志和标准库日志。
-// 日志始终输出到标准输出；filename 非空时同时写入滚动文件。
+// 日志默认输出到标准输出；APP__LOG__CONSOLE=stderr 时输出到标准错误，filename 非空时同时写入滚动文件。
 // 程序通常先由包初始化建立默认日志，再在读取配置后调用一次 Init。
 // 重新初始化前会关闭此前创建的文件 Writer；使用 lifex 时由进程生命周期自动关闭。
 func Init(filename string) {
@@ -34,7 +33,7 @@ func Init(filename string) {
 	install(New(filename))
 }
 
-// New 创建写入标准输出的 zerolog 日志；filename 非空时同时写入滚动文件。
+// New 创建写入控制台的 zerolog 日志；filename 非空时同时写入滚动文件。
 // 调试模式下最低级别为 trace，并记录调用位置。
 // 本包按进程维护统一的文件 Writer 生命周期，调用 Init 或 Close 会关闭此前创建的文件 Writer。
 func New(filename string) zerolog.Logger {
@@ -57,8 +56,8 @@ func loggerWriters(filename string) io.Writer {
 
 func loggerConsoleWriter() io.WriteCloser {
 	return logging.NewConsoleWriter(
-		colorable.NewColorableStdout(),
-		config.MustGet[bool]("log.no_color", !logging.StdoutSupportsColor()),
+		logging.ConsoleOutput(),
+		config.MustGet[bool]("log.no_color", !logging.ConsoleSupportsColor()),
 	)
 }
 
