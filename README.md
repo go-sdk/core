@@ -14,20 +14,20 @@ go get github.com/go-sdk/core
 
 ## 包概览
 
-| 包           | 用途                                   |
-|--------------|----------------------------------------|
-| `cmdx`       | 创建 cobra 根命令并包装命令入口        |
-| `codec/json` | 基于 encoding/json/v2 的 JSON 编解码   |
-| `codec/yaml` | 基于 go.yaml.in/yaml/v3 的 YAML 编解码 |
-| `config`     | 加载文件和环境变量配置                 |
-| `conv`       | string 与 []byte 零拷贝互转            |
-| `errx`       | 创建、包装和判断错误                   |
-| `lifex`      | 管理信号、初始化和解构的进程生命周期   |
-| `logx`       | 配置并使用进程级全局日志               |
-| `osx`        | 读取系统、路径、环境变量和构建信息     |
-| `restx`      | 创建带统一默认配置的 resty 客户端      |
-| `seq`        | 生成 Snowflake ID 和 UUID v7           |
-| `testx`      | 提供常用测试断言和输出辅助             |
+| 包           | 用途                                      |
+|--------------|-------------------------------------------|
+| `cmdx`       | 创建 cobra 根命令并包装命令入口           |
+| `codec/json` | 基于 encoding/json/v2 的 JSON 编解码      |
+| `codec/yaml` | 基于 go.yaml.in/yaml/v3 的 YAML 编解码    |
+| `config`     | 加载文件和环境变量配置                    |
+| `conv`       | string 与 []byte 零拷贝互转、基础类型转换 |
+| `errx`       | 创建、包装和判断错误                      |
+| `lifex`      | 管理信号、初始化和解构的进程生命周期      |
+| `logx`       | 配置并使用进程级全局日志                  |
+| `osx`        | 读取系统、路径、环境变量和构建信息        |
+| `restx`      | 创建带统一默认配置的 resty 客户端         |
+| `seq`        | 生成 Snowflake ID 和 UUID v7              |
+| `testx`      | 提供常用测试断言和输出辅助                |
 
 ## 使用示例
 
@@ -147,14 +147,19 @@ err = enc.Close()
 
 `codec/yaml` 的方法与 `codec/json` 一一对应，同样通过泛型参数支持 `string` 与 `[]byte` 两种载体并复用 `conv` 零拷贝互转；yaml/v3 没有编解码选项，因此不接受额外参数。`NewEncoder` 和 `NewDecoder` 继承自 yaml/v3，可按文档流顺序读写多个 YAML 文档。上游对 `chan`、`func` 等无法表示的类型会直接 panic 而非返回错误。
 
-### 零拷贝转换
+### 类型转换
 
 ```go
 bs := conv.StringToBytes("starudream")
 s := conv.BytesToString(bs)
+
+n, err := conv.ToE[int]("123")
+n = conv.To[int]("123") // 失败时返回 0
 ```
 
 `StringToBytes` 和 `BytesToString` 基于 unsafe 实现零拷贝互转，空输入返回对应零值（nil 或空串）；由 string 转出的 []byte 底层只读，不可修改。
+
+`ToE` 和 `To` 基于 `github.com/spf13/cast` 将任意值弱类型转换为基础类型，支持 string、bool、各类数字、`time.Time` 和 `time.Duration`；`ToE` 转换失败时返回错误和类型零值，`To` 转换失败时返回类型零值。
 
 ### 错误处理
 
