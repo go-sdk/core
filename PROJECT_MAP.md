@@ -14,7 +14,7 @@ core/
 ├── codec/json/                      基于 encoding/json/v2 的泛型 JSON 编解码
 ├── codec/yaml/                      基于 go.yaml.in/yaml/v3 的泛型 YAML 编解码
 ├── config/                          YAML/JSON、环境变量与文件监听配置
-├── conv/                            string 与 []byte 零拷贝互转、基础类型转换
+├── conv/                            string 与 []byte 零拷贝互转、基础类型与指针转换
 ├── errx/                            错误创建、包装、解包和判断
 ├── internal/logging/                启动期与运行期共享的日志基础实现
 ├── lifex/                           全局信号、初始化和解构管理
@@ -72,6 +72,7 @@ core/
 - 空输入返回对应零值（nil 或空串）；由 string 转出的 []byte 底层只读，不可修改。
 - 提供 `ToE` 和 `To`，基于 `github.com/spf13/cast` 将任意值弱类型转换为泛型参数指定的基础类型，支持 `cast.Basic` 约束内的 string、bool、数字、`time.Time` 和 `time.Duration`。
 - `ToE` 转换失败时返回错误和类型零值，`To` 转换失败时返回类型零值。
+- 提供 `PtrValue` 返回指针指向的值，指针为 nil 时返回类型零值。
 
 ### `errx`
 
@@ -158,7 +159,7 @@ testx ───> testify/require、kr/pretty
 - `config` 测试验证 YAML/JSON 文件、显式文件类型、环境变量覆盖、嵌套 Raw、json tag 解码、默认实例、变量替换及循环检测和文件监听重载。
 - `codec/json` 测试验证 `string` 与 `[]byte` 两种载体的序列化、反序列化和 `Must` 版本的错误路径。
 - `codec/yaml` 测试验证 `string` 与 `[]byte` 两种载体的序列化、反序列化和 `Must` 版本的错误路径。
-- `conv` 测试验证空输入零值语义和常规互转结果，以及基础类型转换的成功、失败和 nil 输入行为。
+- `conv` 测试验证空输入零值语义和常规互转结果，以及基础类型转换的成功、失败和 nil 输入行为和指针取值的 nil 零值语义。
 - `errx` 测试验证创建、包装、根因、类型匹配、多错误合并和 `Nil` 哨兵行为。
 - `lifex` 测试验证初始化顺序与失败中断、解构逆序与错误隔离、`Shutdown` 幂等与并发 `Wait`，并通过子进程重入验证信号触发退出和第二次信号强制退出，不访问外部资源。
 - `internal/logging` 测试验证终端颜色判断和启动期 `slog` 的 zerolog 控制台格式。
