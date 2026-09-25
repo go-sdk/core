@@ -287,6 +287,15 @@ exeLog := osx.WithExeExt("log")
 
 主机名和工作目录在调用时读取；可执行文件完整路径在包初始化时读取一次并缓存。`WithExeExt` 返回将可执行文件扩展名替换为指定扩展名的完整路径，常用于生成与程序同名的日志等辅助文件，扩展名缺少前导点时自动补齐。
 
+### 构建与模块版本
+
+```go
+version := osx.GetVersion()
+coreVersion := osx.GetModuleVersion("github.com/go-sdk/core")
+```
+
+`GetVersion` 返回当前程序的版本控制和 Go 构建信息，结果只计算一次并缓存；程序版本可通过构建参数注入。`GetModuleVersion` 按完整模块路径查询当前程序构建信息中的主模块或依赖模块版本；模块使用 `replace` 时返回替换模块的版本。模块不存在、构建信息不可用、版本为空、开发版本为 `(devel)` 或替换目标是没有版本的本地目录时，统一返回 `v0.0.0`。
+
 ### HTTP 客户端
 
 ```go

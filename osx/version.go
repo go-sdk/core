@@ -10,6 +10,11 @@ import (
 	"github.com/go-sdk/core/conv"
 )
 
+const (
+	versionEmpty = "v0.0.0"
+	versionDevel = "(devel)"
+)
+
 // Version 描述当前程序的版本、版本控制和 Go 构建信息。
 type Version struct {
 	Type     string
@@ -48,10 +53,10 @@ func GetVersion() Version {
 
 		if iVersion != "" {
 			version.Version = iVersion
-		} else if bi.Main.Version != "(devel)" {
+		} else if bi.Main.Version != versionDevel {
 			version.Version = bi.Main.Version
 		} else {
-			version.Version = "v0.0.0"
+			version.Version = versionEmpty
 		}
 
 		stm := map[string]string{}
