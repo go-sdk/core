@@ -27,7 +27,7 @@ go get github.com/go-sdk/core
 | `osx`        | 读取系统、路径、环境变量和构建信息              |
 | `restx`      | 创建带统一默认配置的 resty 客户端               |
 | `seq`        | 生成 Snowflake ID 和 UUID v7                    |
-| `testx`      | 提供常用测试断言和输出辅助                      |
+| `testx`      | 提供常用测试断言、假数据和输出辅助              |
 
 ## 使用示例
 
@@ -335,10 +335,23 @@ func TestExample(t *testing.T) {
 	value, err := loadValue()
 	testx.P(t, err, value)
 	testx.NotEmpty(t, value)
+
+	type User struct {
+		Name  string `fake:"{firstname}"`
+		Email string `fake:"{email}"`
+	}
+
+	var user User
+	testx.NoError(t, testx.Struct(&user))
+
+	identifier, err := testx.Generate("user-{uuid}")
+	testx.P(t, err, identifier)
 }
 ```
 
 `P` 将首个参数视为可选错误：参数为 nil 时忽略，为非空错误时终止当前测试，其余参数使用易读格式写入测试日志。
+
+`Generate` 根据模板生成字符串，`Struct` 根据字段类型和 `fake` tag 填充结构体。需要扩展模板函数时，使用 `AddFuncLookup` 注册自定义生成函数；注册会修改进程级全局查找表，测试间应避免使用相同名称。
 
 ## 开发约定
 

@@ -22,7 +22,7 @@ core/
 ├── osx/                             调试状态、环境变量和构建版本信息
 ├── restx/                           预配置的 resty HTTP 客户端
 ├── seq/                             Snowflake ID 和 UUID v7 生成
-├── testx/                           测试断言和输出辅助
+├── testx/                           测试断言、假数据和输出辅助
 ├── AGENTS.md                        仓库协作与修改规范
 ├── PROJECT_MAP.md                   项目结构与调用关系
 ├── README.md                        使用说明与公共行为
@@ -125,6 +125,8 @@ core/
 
 - 集中暴露常用的 `testify/require` 断言。
 - `P` 用于检查首个错误参数，并以易读格式记录其余参数。
+- `Generate` 根据模板生成假数据，`Struct` 根据字段类型和 `fake` tag 填充结构体。
+- `AddFuncLookup` 注册自定义生成函数；注册信息及回调参数使用 `Info`、`Faker`、`MapParams` 和 `Param` 类型别名。
 
 ## 主要依赖关系
 
@@ -141,7 +143,7 @@ cmdx  ───> cobra、errx、osx
 lifex ───> log/slog
 errx  ───> eris
 seq   ───> sonyflake、google/uuid、config、osx
-testx ───> testify/require、kr/pretty
+testx ───> testify/require、kr/pretty、gofakeit
 ```
 
 各业务包的测试可以依赖 `testx`，生产包不依赖 `testx`。
@@ -167,4 +169,4 @@ testx ───> testify/require、kr/pretty
 - `osx` 测试验证调试模式、环境变量优先级、主机与路径信息、扩展名替换、程序与模块构建版本、替换模块版本、构建版本序列化以及 Panic/Panicf 的堆栈输出与 panic 透传。
 - `restx` 使用本地 `httptest` 服务验证客户端配置、调试模式、请求和 Cookie Jar，不访问外部接口。
 - `seq` 同时验证格式、默认机器编号、唯一性和进程内并发安全。
-- `testx` 使用内部测试替身覆盖成功与失败分支，避免依赖自身断言验证核心流程。
+- `testx` 使用内部测试替身覆盖断言辅助的成功与失败分支，并验证模板生成、结构体填充和自定义生成函数，避免依赖自身断言验证核心流程。

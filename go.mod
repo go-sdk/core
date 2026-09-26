@@ -3,6 +3,7 @@ module github.com/go-sdk/core
 go 1.27.0
 
 require (
+	github.com/brianvoe/gofakeit/v7 v7.17.1
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/go-resty/resty/v2 v2.17.2
