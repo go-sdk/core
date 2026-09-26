@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-playground/validator/v10"
+
+	"github.com/go-sdk/core/errx"
 	"github.com/go-sdk/core/testx"
 )
 
@@ -110,6 +113,39 @@ func TestDecodeToRejectsInvalidDurationAndTime(t *testing.T) {
 	}
 
 	testx.Error(t, c.DecodeTo(&target))
+}
+
+func TestDecodeToValidatesStruct(t *testing.T) {
+	filename := writeConfigFile(t, "config.json", `{"database":{"port":"70000"}}`)
+	c := New(WithFile(filename))
+	testx.NoError(t, c.Load())
+
+	var target struct {
+		Database struct {
+			Host string `json:"host" validate:"required"`
+			Port int    `json:"port" validate:"min=1,max=65535"`
+		} `json:"database"`
+	}
+
+	err := c.DecodeTo(&target)
+	testx.ErrorContains(t, err, "config: validate")
+	var validationErrors validator.ValidationErrors
+	testx.True(t, errx.As(err, &validationErrors))
+	testx.Len(t, validationErrors, 2)
+	testx.Equal(t, "required", validationErrors[0].Tag())
+	testx.Equal(t, "max", validationErrors[1].Tag())
+}
+
+func TestDecodeToRejectsNonStructTargets(t *testing.T) {
+	filename := writeConfigFile(t, "config.json", `{"name":"example"}`)
+	c := New(WithFile(filename))
+	testx.NoError(t, c.Load())
+
+	target := map[string]any{}
+	err := c.DecodeTo(&target)
+	testx.ErrorContains(t, err, "config: validate")
+	var validationError *validator.InvalidValidationError
+	testx.True(t, errx.As(err, &validationError))
 }
 
 func TestVariableErrors(t *testing.T) {

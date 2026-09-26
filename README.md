@@ -63,13 +63,13 @@ raw := cfg.Raw()
 
 环境变量只读取 `APP__` 前缀，移除前缀后将 key 转为小写，并使用 `__` 表示层级。例如 `APP__DATABASE__TYPE=mysql` 覆盖 `database.type`。环境变量优先于文件配置，`${database.type}` 使用与 `Get` 相同的路径；缺失引用或循环引用会使加载失败。
 
-`Raw` 返回嵌套数据的深拷贝。`DecodeTo` 使用 `json` tag，并允许将环境变量字符串弱类型转换到目标字段；字符串会按 Go duration 格式解析到 `time.Duration`，按 RFC3339 格式解析到 `time.Time`：
+`Raw` 返回嵌套数据的深拷贝。`DecodeTo` 使用 `json` tag，并允许将环境变量字符串弱类型转换到目标字段；字符串会按 Go duration 格式解析到 `time.Duration`，按 RFC3339 格式解析到 `time.Time`。解码后使用 `validate` tag 校验字段：
 
 ```go
 type AppConfig struct {
 	Database struct {
-		Type string `json:"type"`
-		Port int    `json:"port"`
+		Type string `json:"type" validate:"required"`
+		Port int    `json:"port" validate:"min=1,max=65535"`
 	} `json:"database"`
 }
 
@@ -78,6 +78,8 @@ if err := cfg.DecodeTo(&appConfig); err != nil {
 	return err
 }
 ```
+
+`DecodeTo` 的目标必须是结构体指针；没有 `validate` tag 的结构体仍只执行解码。校验失败时返回的错误链保留 `validator.ValidationErrors`，调用方可按需提取具体字段错误；非结构体目标返回 `validator.InvalidValidationError`。
 
 包级默认实例在初始化时解析配置文件，任何失败都会直接 panic。`CONFIG_PATH` 一经设置即直接采用该路径且不回退，空值、文件不存在或不可读均视为失败；未设置 `CONFIG_PATH` 时，按测试进程所在模块（`go.work` 下为当前目录所属模块）根目录的 `config.yaml`、可执行文件同名的 `.yaml`、`.yml`、`.json` 顺序读取第一个存在的文件，全部不存在时仅加载环境变量。默认实例可通过 `SetDefault` 替换：
 

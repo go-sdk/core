@@ -65,7 +65,7 @@ func Raw() map[string]any {
 	return defaultConfig.Load().Raw()
 }
 
-// DecodeTo 将默认配置实例的完整配置解码到目标值。
+// DecodeTo 将默认配置实例的完整配置解码到目标值，并校验结构体的 validate tag。
 func DecodeTo(target any) error {
 	return defaultConfig.Load().DecodeTo(target)
 }

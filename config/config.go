@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/cast"
 
@@ -14,6 +15,8 @@ import (
 )
 
 const delimiter = "."
+
+var validate = validator.New(validator.WithRequiredStructEnabled())
 
 type Option func(*Config)
 
@@ -116,7 +119,8 @@ func (c *Config) Raw() map[string]any {
 	return data
 }
 
-// DecodeTo 使用 json tag 将完整配置解码到目标值，并解析 duration 与 RFC3339 时间。
+// DecodeTo 使用 json tag 将完整配置解码到目标结构体，并解析 duration 与 RFC3339 时间。
+// 解码后使用 validate tag 校验字段。
 func (c *Config) DecodeTo(target any) error {
 	if target == nil {
 		return errx.New("config: decode target must be a non-nil pointer")
@@ -144,6 +148,9 @@ func (c *Config) DecodeTo(target any) error {
 	}
 	if err = decoder.Decode(data); err != nil {
 		return errx.Wrap(err, "config: decode")
+	}
+	if err = validate.Struct(target); err != nil {
+		return errx.Wrap(err, "config: validate")
 	}
 	return nil
 }
