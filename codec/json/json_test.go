@@ -1,6 +1,7 @@
 package json
 
 import (
+	stdjson "encoding/json/v2"
 	"testing"
 
 	"github.com/go-sdk/core/testx"
@@ -50,4 +51,80 @@ func TestUnmarshal(t *testing.T) {
 func TestMustUnmarshal(t *testing.T) {
 	testx.Equal(t, want, MustUnmarshal[user](raw))
 	testx.Equal(t, want, MustUnmarshal[user, []byte]([]byte(raw)))
+}
+
+func TestJSONTextOptions(t *testing.T) {
+	tests := []struct {
+		name string
+		in   any
+		opts []stdjson.Options
+		want string
+	}{
+		{
+			name: "indent",
+			in:   want,
+			opts: []stdjson.Options{WithIndent("  ")},
+			want: "{\n  \"name\": \"john\",\n  \"age\": 18\n}",
+		},
+		{
+			name: "prefix",
+			in:   want,
+			opts: []stdjson.Options{WithIndent("  "), WithIndentPrefix("\t")},
+			want: "{\n\t  \"name\": \"john\",\n\t  \"age\": 18\n\t}",
+		},
+		{
+			name: "multiline",
+			in:   want,
+			opts: []stdjson.Options{Multiline(true)},
+			want: "{\n\t\"name\": \"john\",\n\t\"age\": 18\n}",
+		},
+		{
+			name: "single-line",
+			in:   want,
+			opts: []stdjson.Options{WithIndent("  "), Multiline(false), SpaceAfterColon(false)},
+			want: raw,
+		},
+		{
+			name: "html",
+			in:   "<>&",
+			opts: []stdjson.Options{EscapeForHTML(true)},
+			want: `"\u003c\u003e\u0026"`,
+		},
+		{
+			name: "javascript",
+			in:   "\u2028\u2029",
+			opts: []stdjson.Options{EscapeForJS(true)},
+			want: `"\u2028\u2029"`,
+		},
+		{
+			name: "spaces",
+			in:   want,
+			opts: []stdjson.Options{SpaceAfterColon(true), SpaceAfterComma(true)},
+			want: `{"name": "john", "age": 18}`,
+		},
+		{
+			name: "later-option-wins",
+			in:   want,
+			opts: []stdjson.Options{SpaceAfterColon(true), SpaceAfterColon(false)},
+			want: raw,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			text, err := Marshal[string](test.in, test.opts...)
+			testx.NoError(t, err)
+			testx.Equal(t, test.want, text)
+			data, err := Marshal[[]byte](test.in, test.opts...)
+			testx.NoError(t, err)
+			testx.Equal(t, test.want, string(data))
+			testx.Equal(t, test.want, MustMarshal[string](test.in, test.opts...))
+		})
+	}
+}
+
+func TestJSONTextOptionsIgnoredOnUnmarshal(t *testing.T) {
+	opts := []stdjson.Options{WithIndent("  "), WithIndentPrefix("\t"), Multiline(true), EscapeForHTML(true), EscapeForJS(true), SpaceAfterColon(true), SpaceAfterComma(true)}
+	var out user
+	testx.NoError(t, Unmarshal(raw, &out, opts...))
+	testx.Equal(t, want, out)
 }

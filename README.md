@@ -121,6 +121,7 @@ if err := root.Execute(); err != nil {
 ```go
 s, err := json.Marshal[string](data)
 bs, err := json.Marshal[[]byte](data)
+s, err = json.Marshal[string](data, json.WithIndent("  "))
 
 var out Data
 err = json.Unmarshal(s, &out)
@@ -132,22 +133,33 @@ err = json.UnmarshalRead(r, &out, json.RejectUnknownMembers(true))
 
 `Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体，内部经 `conv` 零拷贝互转；`Must` 前缀版本在出错时直接 panic。`MarshalWrite` 和 `UnmarshalRead` 直接面向 `io.Writer` 和 `io.Reader` 编解码；`StringifyNumbers`、`Deterministic` 等选项继承自 `encoding/json/v2`，其中 `StringifyNumbers` 和 `MatchCaseInsensitiveNames` 对序列化和反序列化都生效，`RejectUnknownMembers` 仅对反序列化生效，其余仅对序列化生效。
 
+`Value` 是 `jsontext.Value` 的类型别名，用于原始 JSON 内容。另提供七个 `jsontext` 选项别名：`WithIndent`、`WithIndentPrefix`、`Multiline`、`EscapeForHTML`、`EscapeForJS`、`SpaceAfterColon` 和 `SpaceAfterComma`，均仅影响序列化。`WithIndent` 和 `WithIndentPrefix` 隐含开启多行输出，参数只能包含空格和制表符；`WithIndent("")` 仍然输出多行，关闭多行需使用 `Multiline(false)`。后面的同名选项覆盖前面的选项。
+
 ### YAML 编解码
 
 ```go
 s, err := yaml.Marshal[string](data)
 bs, err := yaml.Marshal[[]byte](data)
+s, err = yaml.Marshal[string](data, yaml.WithIndent(2), yaml.WithCompactSeqIndent(true))
 
 var out Data
 err = yaml.Unmarshal(s, &out)
+err = yaml.Unmarshal(s, &out, yaml.WithKnownFields(true))
 value := yaml.MustUnmarshal[Data](bs)
 
 enc := yaml.NewEncoder(w) // 使用后必须 Close 才能刷出剩余数据
+enc.SetIndent(2)
 err = enc.Encode(data)
 err = enc.Close()
 ```
 
-`codec/yaml` 的方法与 `codec/json` 一一对应，同样通过泛型参数支持 `string` 与 `[]byte` 两种载体并复用 `conv` 零拷贝互转；yaml/v3 没有编解码选项，因此不接受额外参数。`NewEncoder` 和 `NewDecoder` 继承自 yaml/v3，可按文档流顺序读写多个 YAML 文档。上游对 `chan`、`func` 等无法表示的类型会直接 panic 而非返回错误。
+`codec/yaml` 同样通过泛型参数支持 `string` 与 `[]byte` 两种载体并复用 `conv` 零拷贝互转。`Marshal`、`MustMarshal`、`Unmarshal` 和 `MustUnmarshal` 接受统一的 `opts ...Options`，后面的同名选项覆盖前面的选项，不适用于当前编解码方向的选项被忽略。不传选项时直接使用上游函数，保持原有默认行为；增加可变参数不影响原有直接调用，但会改变函数类型，赋给固定签名函数变量的调用方需要适配。
+
+- `WithIndent(spaces int)`：仅序列化生效，设置缩进空格数。通常使用 2 或 4；0 使用上游默认的 4，负数在序列化时触发 panic，其余超出 2–9 的正数由上游回退为 2。
+- `WithCompactSeqIndent(enabled bool)`：仅序列化生效，控制序列标记 `- ` 是否计入缩进，默认关闭；设为 false 恢复默认模式。
+- `WithKnownFields(enabled bool)`：仅反序列化生效，检查映射键是否对应目标结构体字段，默认关闭，不限制 map 的键。带选项的解码仍只读取首个文档，空输入或只有注释时不修改目标值且不返回错误。
+
+`NewEncoder` 和 `NewDecoder` 保持为 yaml/v3 的别名，可按文档流顺序读写多个 YAML 文档，流式配置直接使用 `SetIndent`、`CompactSeqIndent`、`DefaultSeqIndent` 和 `KnownFields` 方法。上游对 `chan`、`func` 等无法表示的类型会直接 panic 而非返回错误。
 
 ### 类型转换
 

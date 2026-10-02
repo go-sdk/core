@@ -1,6 +1,7 @@
 package json
 
 import (
+	"encoding/json/jsontext"
 	"encoding/json/v2"
 
 	"github.com/go-sdk/core/codec"
@@ -15,7 +16,9 @@ var (
 	UnmarshalRead = json.UnmarshalRead
 )
 
-// 以下变量是 encoding/json/v2 选项构造函数的别名，可直接传给本包和上游的编解码函数。
+type Value = jsontext.Value
+
+// 以下变量是 encoding/json/v2 和 jsontext 选项构造函数的别名，可直接传给本包和上游的编解码函数。
 var (
 	// StringifyNumbers 序列化和反序列化都生效：数字以 JSON 字符串形式编码和解析。
 	StringifyNumbers = json.StringifyNumbers
@@ -31,6 +34,21 @@ var (
 	MatchCaseInsensitiveNames = json.MatchCaseInsensitiveNames
 	// RejectUnknownMembers 仅反序列化生效：JSON 对象出现未知成员时报错。
 	RejectUnknownMembers = json.RejectUnknownMembers
+
+	// WithIndent 仅序列化生效：开启多行输出，指定每层缩进，只允许空格和制表符。
+	WithIndent = jsontext.WithIndent
+	// WithIndentPrefix 仅序列化生效：开启多行输出，指定行前缀，只允许空格和制表符。
+	WithIndentPrefix = jsontext.WithIndentPrefix
+	// Multiline 仅序列化生效：控制多行输出，未指定缩进时使用制表符。
+	Multiline = jsontext.Multiline
+	// EscapeForHTML 仅序列化生效：转义字符串中的 <、> 和 &，用于嵌入 HTML。
+	EscapeForHTML = jsontext.EscapeForHTML
+	// EscapeForJS 仅序列化生效：转义字符串中的 U+2028 和 U+2029，用于嵌入 JavaScript。
+	EscapeForJS = jsontext.EscapeForJS
+	// SpaceAfterColon 仅序列化生效：控制冒号后的空格。
+	SpaceAfterColon = jsontext.SpaceAfterColon
+	// SpaceAfterComma 仅序列化生效：控制逗号后的空格。
+	SpaceAfterComma = jsontext.SpaceAfterComma
 )
 
 func Marshal[T codec.Data](in any, opts ...json.Options) (T, error) {
