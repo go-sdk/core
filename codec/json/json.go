@@ -75,6 +75,22 @@ func MustMarshal[T codec.Data](in any, opts ...json.Options) T {
 	return v
 }
 
+func MarshalIndent[T codec.Data](in any, indent string, opts ...json.Options) (T, error) {
+	return Marshal[T](in, append([]json.Options{WithIndent(indent)}, opts...)...)
+}
+
+func MustMarshalIndent[T codec.Data](in any, indent string, opts ...json.Options) T {
+	return MustMarshal[T](in, append([]json.Options{WithIndent(indent)}, opts...)...)
+}
+
+func MarshalOmitZero[T codec.Data](in any, opts ...json.Options) (T, error) {
+	return Marshal[T](in, append([]json.Options{OmitZeroStructFields(true)}, opts...)...)
+}
+
+func MustMarshalOmitZero[T codec.Data](in any, opts ...json.Options) T {
+	return MustMarshal[T](in, append([]json.Options{OmitZeroStructFields(true)}, opts...)...)
+}
+
 func Unmarshal[T codec.Data](in T, out any, opts ...json.Options) error {
 	var bs []byte
 	switch v := any(in).(type) {

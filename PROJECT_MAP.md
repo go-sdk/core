@@ -53,6 +53,7 @@ core/
 ### `codec/json`
 
 - 基于 `encoding/json/v2`，`Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体。
+- `MarshalIndent` 和 `MustMarshalIndent` 通过 `indent string` 指定默认缩进；`MarshalOmitZero` 和 `MustMarshalOmitZero` 默认省略零值结构体字段。四个函数均复用现有序列化逻辑并接受 `opts ...json.Options`，调用方选项可覆盖默认选项。
 - `MarshalWrite` 和 `UnmarshalRead` 是上游对应函数的别名，直接面向 `io.Writer` 和 `io.Reader` 编解码。
 - `StringifyNumbers`、`Deterministic` 等选项同为上游选项构造函数的别名；`StringifyNumbers` 和 `MatchCaseInsensitiveNames` 对序列化和反序列化都生效，`RejectUnknownMembers` 仅对反序列化生效，其余选项仅对序列化生效。
 - `Value` 是 `jsontext.Value` 的别名；另暴露 `WithIndent`、`WithIndentPrefix`、`Multiline`、`EscapeForHTML`、`EscapeForJS`、`SpaceAfterColon` 和 `SpaceAfterComma` 七个仅影响序列化的 `jsontext` 选项。

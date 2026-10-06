@@ -38,6 +38,151 @@ func TestMarshalError(t *testing.T) {
 	testx.Panics(t, func() { MustMarshal[string](make(chan int)) })
 }
 
+func TestMarshalIndent(t *testing.T) {
+	tests := []struct {
+		name   string
+		indent string
+		opts   []stdjson.Options
+		want   string
+	}{
+		{
+			name:   "spaces",
+			indent: "  ",
+			want:   "{\n  \"name\": \"john\",\n  \"age\": 18\n}",
+		},
+		{
+			name:   "tab",
+			indent: "\t",
+			want:   "{\n\t\"name\": \"john\",\n\t\"age\": 18\n}",
+		},
+		{
+			name:   "empty-indent",
+			indent: "",
+			want:   "{\n\"name\": \"john\",\n\"age\": 18\n}",
+		},
+		{
+			name:   "override-indent",
+			indent: "  ",
+			opts:   []stdjson.Options{WithIndent("\t")},
+			want:   "{\n\t\"name\": \"john\",\n\t\"age\": 18\n}",
+		},
+		{
+			name:   "single-line",
+			indent: "  ",
+			opts:   []stdjson.Options{Multiline(false), SpaceAfterColon(false)},
+			want:   raw,
+		},
+		{
+			name:   "stringify-numbers",
+			indent: "  ",
+			opts:   []stdjson.Options{StringifyNumbers(true)},
+			want:   "{\n  \"name\": \"john\",\n  \"age\": \"18\"\n}",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			text, err := MarshalIndent[string](want, test.indent, test.opts...)
+			testx.NoError(t, err)
+			testx.Equal(t, test.want, text)
+			data, err := MarshalIndent[[]byte](want, test.indent, test.opts...)
+			testx.NoError(t, err)
+			testx.Equal(t, test.want, string(data))
+			testx.Equal(t, test.want, MustMarshalIndent[string](want, test.indent, test.opts...))
+			testx.Equal(t, test.want, string(MustMarshalIndent[[]byte](want, test.indent, test.opts...)))
+		})
+	}
+}
+
+func TestMarshalIndentError(t *testing.T) {
+	text, err := MarshalIndent[string](make(chan int), "  ")
+	testx.Error(t, err)
+	testx.Empty(t, text)
+	data, err := MarshalIndent[[]byte](make(chan int), "  ")
+	testx.Error(t, err)
+	testx.Nil(t, data)
+	testx.Panics(t, func() { MustMarshalIndent[string](make(chan int), "  ") })
+	testx.Panics(t, func() { MustMarshalIndent[[]byte](make(chan int), "  ") })
+}
+
+func TestMarshalOmitZero(t *testing.T) {
+	tests := []struct {
+		name string
+		in   any
+		opts []stdjson.Options
+		want string
+	}{
+		{
+			name: "non-zero",
+			in:   want,
+			want: raw,
+		},
+		{
+			name: "zero-field",
+			in:   user{Name: "john"},
+			want: `{"name":"john"}`,
+		},
+		{
+			name: "all-zero",
+			in:   user{},
+			want: `{}`,
+		},
+		{
+			name: "disable-omit-zero",
+			in:   user{},
+			opts: []stdjson.Options{OmitZeroStructFields(false)},
+			want: `{"name":"","age":0}`,
+		},
+		{
+			name: "indent",
+			in:   user{Name: "john"},
+			opts: []stdjson.Options{WithIndent("  ")},
+			want: "{\n  \"name\": \"john\"\n}",
+		},
+		{
+			name: "nil-slice",
+			in: struct {
+				Items []string `json:"items"`
+			}{},
+			want: `{}`,
+		},
+		{
+			name: "empty-slice",
+			in: struct {
+				Items []string `json:"items"`
+			}{Items: []string{}},
+			want: `{"items":[]}`,
+		},
+		{
+			name: "map-zero-value",
+			in:   map[string]int{"age": 0},
+			want: `{"age":0}`,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			text, err := MarshalOmitZero[string](test.in, test.opts...)
+			testx.NoError(t, err)
+			testx.Equal(t, test.want, text)
+			data, err := MarshalOmitZero[[]byte](test.in, test.opts...)
+			testx.NoError(t, err)
+			testx.Equal(t, test.want, string(data))
+			testx.Equal(t, test.want, MustMarshalOmitZero[string](test.in, test.opts...))
+			testx.Equal(t, test.want, string(MustMarshalOmitZero[[]byte](test.in, test.opts...)))
+		})
+	}
+}
+
+func TestMarshalOmitZeroError(t *testing.T) {
+	text, err := MarshalOmitZero[string](make(chan int))
+	testx.Error(t, err)
+	testx.Empty(t, text)
+	data, err := MarshalOmitZero[[]byte](make(chan int))
+	testx.Error(t, err)
+	testx.Nil(t, data)
+	testx.Panics(t, func() { MustMarshalOmitZero[string](make(chan int)) })
+	testx.Panics(t, func() { MustMarshalOmitZero[[]byte](make(chan int)) })
+}
+
 func TestUnmarshal(t *testing.T) {
 	var fromString user
 	testx.NoError(t, Unmarshal(raw, &fromString))

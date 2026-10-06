@@ -122,6 +122,10 @@ if err := root.Execute(); err != nil {
 s, err := json.Marshal[string](data)
 bs, err := json.Marshal[[]byte](data)
 s, err = json.Marshal[string](data, json.WithIndent("  "))
+s, err = json.MarshalIndent[string](data, "  ", json.Deterministic(true))
+s, err = json.MarshalOmitZero[string](data)
+s = json.MustMarshalIndent[string](data, "  ")
+bs = json.MustMarshalOmitZero[[]byte](data)
 
 var out Data
 err = json.Unmarshal(s, &out)
@@ -134,6 +138,8 @@ err = json.UnmarshalRead(r, &out, json.RejectUnknownMembers(true))
 `Marshal` 和 `Unmarshal` 通过泛型参数支持 `string` 与 `[]byte` 两种载体，内部经 `conv` 零拷贝互转；`Must` 前缀版本在出错时直接 panic。`MarshalWrite` 和 `UnmarshalRead` 直接面向 `io.Writer` 和 `io.Reader` 编解码；`StringifyNumbers`、`Deterministic` 等选项继承自 `encoding/json/v2`，其中 `StringifyNumbers` 和 `MatchCaseInsensitiveNames` 对序列化和反序列化都生效，`RejectUnknownMembers` 仅对反序列化生效，其余仅对序列化生效。
 
 `Value` 是 `jsontext.Value` 的类型别名，用于原始 JSON 内容。另提供七个 `jsontext` 选项别名：`WithIndent`、`WithIndentPrefix`、`Multiline`、`EscapeForHTML`、`EscapeForJS`、`SpaceAfterColon` 和 `SpaceAfterComma`，均仅影响序列化。`WithIndent` 和 `WithIndentPrefix` 隐含开启多行输出，参数只能包含空格和制表符；`WithIndent("")` 仍然输出多行，关闭多行需使用 `Multiline(false)`。后面的同名选项覆盖前面的选项。
+
+`MarshalIndent` 和 `MustMarshalIndent` 接受 `indent string`，默认应用 `WithIndent(indent)`；`MarshalOmitZero` 和 `MustMarshalOmitZero` 默认应用 `OmitZeroStructFields(true)`，按上游零值语义省略结构体字段。四个函数均支持 `string` 与 `[]byte`，接受 `opts ...json.Options`（来自 `encoding/json/v2`），调用方选项在默认选项之后生效，可覆盖缩进、关闭多行或关闭零值省略。
 
 ### YAML 编解码
 
