@@ -33,6 +33,21 @@ var (
 	MatchAll = cobra.MatchAll
 )
 
+// Print 将参数写入命令的标准输出，不自动追加换行。
+func Print(cmd *Command, a ...any) {
+	_, _ = fmt.Fprint(cmd.OutOrStdout(), a...)
+}
+
+// Printf 按格式将内容写入命令的标准输出。
+func Printf(cmd *Command, format string, a ...any) {
+	_, _ = fmt.Fprintf(cmd.OutOrStdout(), format, a...)
+}
+
+// Println 将参数写入命令的标准输出，并追加换行。
+func Println(cmd *Command, a ...any) {
+	_, _ = fmt.Fprintln(cmd.OutOrStdout(), a...)
+}
+
 // NewRoot 创建带统一默认配置的根命令。
 // 隐藏 help 和 completion 子命令，版本描述来自 osx.GetVersion 并以单行输出；
 // 帮助与版本写入标准输出，cobra 自身的错误输出被丢弃，

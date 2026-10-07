@@ -102,3 +102,16 @@ func TestArgumentValidators(t *testing.T) {
 	testx.NoError(t, MatchAll(ExactArgs(2), OnlyValidArgs)(cmd, []string{"one", "two"}))
 	testx.Error(t, MatchAll(ExactArgs(2), OnlyValidArgs)(cmd, []string{"one", "three"}))
 }
+
+func TestOutputHelpers(t *testing.T) {
+	var out bytes.Buffer
+	cmd := NewRoot("app")
+	cmd.SetOut(&out)
+
+	Print(cmd, "hello", " ", "world")
+
+	Printf(cmd, " %s=%d", "answer", 42)
+
+	Println(cmd, " done")
+	testx.Equal(t, "hello world answer=42 done\n", out.String())
+}

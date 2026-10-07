@@ -36,6 +36,7 @@ core/
 
 - 基于 `github.com/spf13/cobra`，`Command` 是 `cobra.Command` 的类型别名。
 - 暴露 Cobra 常用的位置参数校验器别名：`NoArgs`、`OnlyValidArgs`、`ArbitraryArgs`、`MinimumNArgs`、`MaximumNArgs`、`ExactArgs`、`RangeArgs` 和 `MatchAll`。
+- `Print`、`Printf` 和 `Println` 将格式化内容写入 `cmd.OutOrStdout()`，忽略输出返回值。
 - `NewRoot` 创建隐藏 help 和 completion 子命令的根命令，版本描述来自 `osx.GetVersion`。
 - cobra 自身的错误输出被丢弃，命令错误由 `Execute` 返回，调用方自行处理。
 - `WrapRunE` 将 `errx.Nil` 哨兵错误视为无错误，其余错误原样返回。

@@ -132,6 +132,12 @@ root.AddCommand(&cmdx.Command{
 
 `NoArgs`、`OnlyValidArgs`、`ArbitraryArgs` 分别限制为无参数、仅允许 `ValidArgs` 中的参数和任意参数；`MinimumNArgs`、`MaximumNArgs`、`ExactArgs`、`RangeArgs` 按数量限制参数；`MatchAll` 可组合多个校验器。Cobra 的 `ExactValidArgs` 已弃用，新的代码使用 `MatchAll(ExactArgs(n), OnlyValidArgs)`。
 
+命令输出可使用 `Print`、`Printf` 和 `Println`，它们统一写入 `cmd.OutOrStdout()`，不返回写入结果：
+
+```go
+cmdx.Println(cmd, "执行完成")
+```
+
 ### JSON 编解码
 
 ```go
