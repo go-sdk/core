@@ -116,6 +116,22 @@ if err := root.Execute(); err != nil {
 
 `NewRoot` 隐藏 help 和 completion 子命令，`--version` 输出来自 `osx.GetVersion` 的单行版本描述。cobra 自身的错误输出被丢弃，命令错误由 `Execute` 直接返回，调用方自行处理；`WrapRunE` 将 `errx.Nil` 哨兵错误视为无错误，其余错误原样返回。
 
+`cmdx` 直接暴露 Cobra 常用的位置参数校验器，可通过 `Args` 配置：
+
+```go
+root.AddCommand(&cmdx.Command{
+	Use:  "get <name>",
+	Args: cmdx.ExactArgs(1),
+})
+
+root.AddCommand(&cmdx.Command{
+	Use:  "delete <name> [name]...",
+	Args: cmdx.MatchAll(cmdx.MinimumNArgs(1), cmdx.OnlyValidArgs),
+})
+```
+
+`NoArgs`、`OnlyValidArgs`、`ArbitraryArgs` 分别限制为无参数、仅允许 `ValidArgs` 中的参数和任意参数；`MinimumNArgs`、`MaximumNArgs`、`ExactArgs`、`RangeArgs` 按数量限制参数；`MatchAll` 可组合多个校验器。Cobra 的 `ExactValidArgs` 已弃用，新的代码使用 `MatchAll(ExactArgs(n), OnlyValidArgs)`。
+
 ### JSON 编解码
 
 ```go

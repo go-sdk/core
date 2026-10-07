@@ -82,3 +82,23 @@ func TestWrapRunE(t *testing.T) {
 		testx.Same(t, target, wrapped(root, nil))
 	})
 }
+
+func TestArgumentValidators(t *testing.T) {
+	cmd := &Command{Use: "app", ValidArgs: []string{"one", "two"}}
+
+	testx.NoError(t, NoArgs(cmd, nil))
+	testx.Error(t, NoArgs(cmd, []string{"one"}))
+	testx.NoError(t, OnlyValidArgs(cmd, []string{"one", "two"}))
+	testx.Error(t, OnlyValidArgs(cmd, []string{"three"}))
+	testx.NoError(t, ArbitraryArgs(cmd, []string{"one", "two", "three"}))
+	testx.NoError(t, MinimumNArgs(2)(cmd, []string{"one", "two"}))
+	testx.Error(t, MinimumNArgs(2)(cmd, []string{"one"}))
+	testx.NoError(t, MaximumNArgs(2)(cmd, []string{"one", "two"}))
+	testx.Error(t, MaximumNArgs(2)(cmd, []string{"one", "two", "three"}))
+	testx.NoError(t, ExactArgs(2)(cmd, []string{"one", "two"}))
+	testx.Error(t, ExactArgs(2)(cmd, []string{"one"}))
+	testx.NoError(t, RangeArgs(1, 2)(cmd, []string{"one"}))
+	testx.Error(t, RangeArgs(1, 2)(cmd, []string{"one", "two", "three"}))
+	testx.NoError(t, MatchAll(ExactArgs(2), OnlyValidArgs)(cmd, []string{"one", "two"}))
+	testx.Error(t, MatchAll(ExactArgs(2), OnlyValidArgs)(cmd, []string{"one", "three"}))
+}
