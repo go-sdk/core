@@ -187,6 +187,8 @@ err = enc.Close()
 - `WithCompactSeqIndent(enabled bool)`：仅序列化生效，控制序列标记 `- ` 是否计入缩进，默认关闭；设为 false 恢复默认模式。
 - `WithKnownFields(enabled bool)`：仅反序列化生效，检查映射键是否对应目标结构体字段，默认关闭，不限制 map 的键。带选项的解码仍只读取首个文档，空输入或只有注释时不修改目标值且不返回错误。
 
+`Node`、`Kind`、`Style`、`Encoder` 和 `Decoder` 是上游类型别名，同时暴露全部节点类型和样式常量。可以仅依赖本包构造和修改语法树、声明 `UnmarshalYAML(*yaml.Node) error` 回调，类型身份和方法集保持一致。
+
 `NewEncoder` 和 `NewDecoder` 保持为 yaml/v3 的别名，可按文档流顺序读写多个 YAML 文档，流式配置直接使用 `SetIndent`、`CompactSeqIndent`、`DefaultSeqIndent` 和 `KnownFields` 方法。上游对 `chan`、`func` 等无法表示的类型会直接 panic 而非返回错误。
 
 ### 类型转换

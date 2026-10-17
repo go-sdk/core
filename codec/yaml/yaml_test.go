@@ -5,8 +5,6 @@ import (
 	"io"
 	"testing"
 
-	stdyaml "go.yaml.in/yaml/v3"
-
 	"github.com/go-sdk/core/testx"
 )
 
@@ -23,7 +21,7 @@ type eofUnmarshaler struct {
 	calls int
 }
 
-func (value *eofUnmarshaler) UnmarshalYAML(*stdyaml.Node) error {
+func (value *eofUnmarshaler) UnmarshalYAML(*Node) error {
 	value.calls++
 	return io.EOF
 }

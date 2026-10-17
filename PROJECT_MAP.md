@@ -67,6 +67,7 @@ core/
 - 基于 `go.yaml.in/yaml/v3`，同样通过泛型参数支持 `string` 与 `[]byte` 两种载体，四个编解码函数接受统一的 `opts ...Options`；后面的同名选项覆盖前面的选项，不适用于当前方向的选项被忽略。
 - 不传选项时直接调用上游函数；传入选项时序列化通过缓冲区和 Encoder 完成，并检查 Encode 与 Close 错误，反序列化通过 Decoder 读取首个文档，空输入保持原有行为。
 - `WithIndent` 和 `WithCompactSeqIndent` 仅影响序列化，`WithKnownFields` 仅影响反序列化；默认缩进和宽松字段检查保持不变。
+- `Node`、`Kind`、`Style`、`Encoder` 和 `Decoder` 为上游类型别名，节点类型与样式常量同样直接复用；语法树读写和自定义 YAML 回调无需另行导入上游包。
 - `NewEncoder` 和 `NewDecoder` 是上游对应函数的别名，用于流式多文档编解码；`Encoder` 使用后必须调用 `Close`，否则剩余数据不会写入 Writer。
 - 载体转换经 `conv` 零拷贝完成，`[]byte` 路径直接复用原切片。
 - `Must` 前缀版本在出错时经 `osx.Panic` 直接 panic。

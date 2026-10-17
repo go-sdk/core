@@ -11,6 +11,31 @@ import (
 	"github.com/go-sdk/core/osx"
 )
 
+// 类型别名保留上游语法树和流式编解码器的方法集，支持直接声明节点及自定义 YAML 回调。
+type (
+	Node    = yaml.Node
+	Kind    = yaml.Kind
+	Style   = yaml.Style
+	Encoder = yaml.Encoder
+	Decoder = yaml.Decoder
+)
+
+// 节点类型和输出样式沿用上游常量，语法树调用方无需直接依赖上游包。
+const (
+	DocumentNode = yaml.DocumentNode
+	SequenceNode = yaml.SequenceNode
+	MappingNode  = yaml.MappingNode
+	ScalarNode   = yaml.ScalarNode
+	AliasNode    = yaml.AliasNode
+
+	TaggedStyle       = yaml.TaggedStyle
+	DoubleQuotedStyle = yaml.DoubleQuotedStyle
+	SingleQuotedStyle = yaml.SingleQuotedStyle
+	LiteralStyle      = yaml.LiteralStyle
+	FoldedStyle       = yaml.FoldedStyle
+	FlowStyle         = yaml.FlowStyle
+)
+
 // NewEncoder 和 NewDecoder 是 go.yaml.in/yaml/v3 对应函数的别名，用于面向 io.Writer
 // 和 io.Reader 的流式多文档编解码；Encoder 使用后必须调用 Close，否则剩余数据不会写入 Writer。
 var (
