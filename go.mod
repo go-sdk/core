@@ -3,7 +3,7 @@ module github.com/go-sdk/core
 go 1.27.0
 
 require (
-	github.com/brianvoe/gofakeit/v7 v7.18.2
+	github.com/brianvoe/gofakeit/v7 v7.18.9
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-playground/validator/v10 v10.30.6
 	github.com/go-resty/resty/v2 v2.17.2
@@ -20,7 +20,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	go.yaml.in/yaml/v3 v3.0.6
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -35,7 +35,7 @@ require (
 	github.com/samber/lo v1.53.0 // indirect
 	github.com/samber/slog-common v0.22.0 // indirect
 	github.com/spf13/pflag v1.1.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
 )
